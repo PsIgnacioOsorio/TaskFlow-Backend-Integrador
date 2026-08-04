@@ -1,0 +1,31 @@
+{
+  "name": "taskflow-backend-integrador",
+  "version": "1.0.0",
+  "description": "Parte 1 del proyecto integrador: servidor base de TaskFlow con Node.js, Express, HBS y registro de accesos.",
+  "main": "app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "hbs",
+    "taskflow",
+    "backend"
+  ],
+  "author": "Ignacio Osorio Opazo",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "hbs": "^4.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
