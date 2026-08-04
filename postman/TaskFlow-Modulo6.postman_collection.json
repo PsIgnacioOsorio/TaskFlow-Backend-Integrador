@@ -1,0 +1,49 @@
+{
+  "info": {
+    "_postman_id": "2fa740d5-318d-42ad-a922-6cf8d01bfa06",
+    "name": "TaskFlow Backend Integrador - Módulo 6",
+    "description": "Pruebas públicas de la Parte 1. No contiene autenticación ni base de datos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET - Inicio HBS",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/"
+      }
+    },
+    {
+      "name": "GET - Estado JSON",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/status"
+      }
+    },
+    {
+      "name": "GET - CSS estático",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/css/styles.css"
+      }
+    },
+    {
+      "name": "GET - Ruta inexistente 404",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/ruta-inexistente"
+      }
+    }
+  ]
+}
