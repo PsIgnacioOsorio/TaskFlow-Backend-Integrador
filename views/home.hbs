@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Página pública de TaskFlow Backend Integrador">
+  <title>{{pageTitle}}</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <span class="badge">{{moduleName}}</span>
+      <h1>{{projectName}}</h1>
+      <p>Base backend construida con Node.js, Express y Handlebars.</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card intro">
+      <p class="eyebrow">Servidor en funcionamiento</p>
+      <h2>Primera entrega completada</h2>
+      <p>
+        Esta página fue renderizada dinámicamente por HBS. La versión de Node usada
+        actualmente por el servidor es <strong>{{nodeVersion}}</strong>.
+      </p>
+      <a class="button" href="/status">Comprobar estado JSON</a>
+    </section>
+
+    <section class="card">
+      <h2>Rutas públicas</h2>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Método</th>
+              <th>Ruta</th>
+              <th>Respuesta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each routes}}
+              <tr>
+                <td><span class="method">{{method}}</span></td>
+                <td><code>{{path}}</code></td>
+                <td>{{response}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">TaskFlow Backend Integrador · {{currentYear}}</div>
+  </footer>
+</body>
+</html>
