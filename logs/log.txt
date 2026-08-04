@@ -1,0 +1,36 @@
+# Los accesos HTTP se agregan debajo de esta línea mediante fs.appendFile().
+fecha=2026-07-31 hora=20:41:05.064 metodo=GET ruta=/status
+fecha=2026-07-31 hora=20:41:05.073 metodo=GET ruta=/
+fecha=2026-07-31 hora=20:41:05.102 metodo=GET ruta=/status
+fecha=2026-07-31 hora=20:41:05.107 metodo=GET ruta=/css/styles.css
+fecha=2026-07-31 hora=20:41:05.113 metodo=GET ruta=/ruta-inexistente
+fecha=2026-07-31 hora=20:41:05.122 metodo=GET ruta=/status
+fecha=2026-07-31 hora=20:41:05.127 metodo=GET ruta=/status
+fecha=2026-07-31 hora=20:41:05.132 metodo=GET ruta=/status
+fecha=2026-07-31 hora=16:42:07 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-07-31 hora=16:42:07 zona=America/Santiago metodo=GET ruta=/
+fecha=2026-07-31 hora=16:42:07 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-07-31 hora=16:42:07 zona=America/Santiago metodo=GET ruta=/css/styles.css
+fecha=2026-07-31 hora=16:42:07 zona=America/Santiago metodo=GET ruta=/ruta-inexistente
+fecha=2026-07-31 hora=16:42:07 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-07-31 hora=16:42:07 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-07-31 hora=16:42:07 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-08-04 hora=13:03:39 zona=America/Santiago metodo=GET ruta=/
+fecha=2026-08-04 hora=13:03:39 zona=America/Santiago metodo=GET ruta=/css/styles.css
+fecha=2026-08-04 hora=13:03:39 zona=America/Santiago metodo=GET ruta=/favicon.ico
+fecha=2026-08-04 hora=13:04:21 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-08-04 hora=13:05:51 zona=America/Santiago metodo=GET ruta=/css/styles.css
+fecha=2026-08-04 hora=13:06:15 zona=America/Santiago metodo=GET ruta=/
+fecha=2026-08-04 hora=13:06:15 zona=America/Santiago metodo=GET ruta=/css/styles.css
+fecha=2026-08-04 hora=13:06:27 zona=America/Santiago metodo=GET ruta=/ruta-inexistente
+fecha=2026-08-04 hora=13:06:34 zona=America/Santiago metodo=GET ruta=/css/styles.css
+fecha=2026-08-04 hora=13:06:48 zona=America/Santiago metodo=GET ruta=/
+fecha=2026-08-04 hora=13:06:48 zona=America/Santiago metodo=GET ruta=/css/styles.css
+fecha=2026-08-04 hora=13:06:50 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-08-04 hora=13:06:55 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-08-04 hora=13:06:57 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-08-04 hora=13:15:18 zona=America/Santiago metodo=GET ruta=/status
+fecha=2026-08-04 hora=13:37:45 zona=America/Santiago metodo=GET ruta=/css/styles.css
+fecha=2026-08-04 hora=13:41:24 zona=America/Santiago metodo=GET ruta=/ruta-inexistente
+fecha=2026-08-04 hora=13:41:40 zona=America/Santiago metodo=GET ruta=/ruta-inexistent
+fecha=2026-08-04 hora=13:41:47 zona=America/Santiago metodo=GET ruta=/ruta-in
