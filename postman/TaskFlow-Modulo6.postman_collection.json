@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "2fa740d5-318d-42ad-a922-6cf8d01bfa06",
     "name": "TaskFlow Backend Integrador - Módulo 6",
-    "description": "Pruebas públicas de la Parte 1. No contiene autenticación ni base de datos.",
+    "description": "Pruebas públicas de la aplicación básica TaskFlow. Los cambios se guardan temporalmente en memoria.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,35 +15,52 @@
   "item": [
     {
       "name": "GET - Inicio HBS",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/"
-      }
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/" }
     },
     {
       "name": "GET - Estado JSON",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/status" }
+    },
+    {
+      "name": "GET - Listar tareas",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/tasks" }
+    },
+    {
+      "name": "GET - Filtrar tareas completadas",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/tasks?status=completed" }
+    },
+    {
+      "name": "GET - Buscar tareas",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/tasks?search=drive" }
+    },
+    {
+      "name": "POST - Crear tarea desde formulario",
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [],
-        "url": "{{baseUrl}}/status"
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "title", "value": "Nueva tarea desde Postman", "type": "text" },
+            { "key": "description", "value": "Comprobar creación temporal", "type": "text" },
+            { "key": "priority", "value": "medium", "type": "text" },
+            { "key": "dueDate", "value": "2026-08-15", "type": "text" }
+          ]
+        },
+        "url": "{{baseUrl}}/tasks"
       }
     },
     {
-      "name": "GET - CSS estático",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/css/styles.css"
-      }
+      "name": "GET - CSS propio",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/css/styles.css" }
+    },
+    {
+      "name": "GET - Bootstrap local",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/vendor/bootstrap/css/bootstrap.min.css" }
     },
     {
       "name": "GET - Ruta inexistente 404",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/ruta-inexistente"
-      }
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/ruta-inexistente" }
     }
   ]
 }
