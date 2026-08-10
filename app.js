@@ -13,6 +13,9 @@ const errorHandler = require("./middlewares/errorHandler.middleware");
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+// Evita publicar un detalle innecesario de la tecnología usada por el servidor.
+app.disable("x-powered-by");
+
 // Configura Handlebars (HBS) y la carpeta que contiene las vistas dinámicas.
 app.set("view engine", "hbs");
 app.set("views", path.join(__dirname, "views"));
@@ -20,8 +23,18 @@ app.set("views", path.join(__dirname, "views"));
 // Registra cada solicitud antes de que llegue a los archivos estáticos o las rutas.
 app.use(requestLogger);
 
+// Permite recibir formularios HTML y solicitudes JSON para trabajar con tareas.
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+
 // Publica CSS, imágenes u otros recursos guardados dentro de /public.
 app.use(express.static(path.join(__dirname, "public")));
+
+// Bootstrap se instala con npm y se publica de forma local para no depender de un CDN.
+app.use(
+  "/vendor/bootstrap",
+  express.static(path.join(__dirname, "node_modules", "bootstrap", "dist"))
+);
 
 // Conecta el router público externo con la aplicación principal.
 app.use("/", webRoutes);

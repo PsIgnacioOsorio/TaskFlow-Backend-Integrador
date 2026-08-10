@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="La página solicitada no existe en {{projectName}}">
+  <title>{{pageTitle}}</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="d-flex flex-column min-vh-100">
+  <a class="visually-hidden-focusable position-absolute top-0 start-0 p-3" href="#contenido-principal">
+    Saltar al contenido
+  </a>
+
+  <nav class="navbar navbar-dark bg-primary shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="/">
+        <span class="brand-mark me-2" aria-hidden="true">✓</span>{{projectName}}
+      </a>
+    </div>
+  </nav>
+
+  <main id="contenido-principal" class="container d-flex flex-grow-1 align-items-center justify-content-center py-5">
+    <section class="not-found-card card border-0 shadow-sm text-center" aria-labelledby="titulo-error">
+      <div class="card-body p-4 p-md-5">
+        <p class="not-found-code fw-bold text-primary mb-2" aria-hidden="true">404</p>
+        <h1 id="titulo-error" class="h2 fw-bold mb-3">Página no encontrada</h1>
+        <p class="text-secondary mb-2">
+          La dirección que intentaste visitar no existe en TaskFlow.
+        </p>
+        <p class="small text-secondary mb-4">
+          Ruta solicitada: <code>{{requestedPath}}</code>
+        </p>
+        <a class="btn btn-primary" href="/">Volver a mis tareas</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-top bg-white py-3">
+    <div class="container text-center text-secondary small">
+      {{projectName}} · {{currentYear}}
+    </div>
+  </footer>
+</body>
+</html>

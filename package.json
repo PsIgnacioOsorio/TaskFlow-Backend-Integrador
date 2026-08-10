@@ -1,12 +1,14 @@
 {
   "name": "taskflow-backend-integrador",
   "version": "1.0.0",
-  "description": "Parte 1 del proyecto integrador: servidor base de TaskFlow con Node.js, Express, HBS y registro de accesos.",
+  "description": "Base de TaskFlow con Express, HBS, Bootstrap y gestión temporal de tareas.",
   "main": "app.js",
   "type": "commonjs",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "test": "node --test",
+    "check": "npm test"
   },
   "keywords": [
     "node",
@@ -21,6 +23,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "bootstrap": "^5.3.8",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "hbs": "^4.2.1"
