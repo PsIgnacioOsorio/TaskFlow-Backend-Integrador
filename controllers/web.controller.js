@@ -1,113 +1,100 @@
 const {
-  TASK_STATUSES,
   addTask,
   advanceTask,
   getTaskSummary,
   listTasks,
   removeTask
 } = require("../services/task.service");
+const {
+  createUser,
+  deleteUser,
+  listUsers
+} = require("../services/user.service");
 
 const getAppConfig = () => ({
   appName: process.env.APP_NAME?.trim() || "TaskFlow",
-  appStage: process.env.APP_STAGE?.trim() || "Parte 1 - Módulo 6"
+  appStage: process.env.APP_STAGE?.trim() || "Parte 2 - Módulo 7"
 });
 
-const getHome = (req, res) => {
+const getHome = async (req, res) => {
   const config = getAppConfig();
-  const tasks = listTasks();
+  const [tasks, users] = await Promise.all([listTasks(), listUsers({ active: true })]);
 
-  // Express entrega a HBS tanto configuración como datos del dominio TaskFlow.
   res.status(200).render("home", {
     pageTitle: `${config.appName} | Mis tareas`,
     projectName: config.appName,
     moduleName: config.appStage,
     currentYear: new Date().getFullYear(),
     tasks,
+    users,
     summary: getTaskSummary(tasks)
+  });
+};
+
+const getUsersPage = async (req, res) => {
+  const config = getAppConfig();
+  const users = await listUsers();
+
+  res.status(200).render("users", {
+    pageTitle: `${config.appName} | Usuarios`,
+    projectName: config.appName,
+    moduleName: config.appStage,
+    currentYear: new Date().getFullYear(),
+    users,
+    userCount: users.length
   });
 };
 
 const getStatus = (req, res) => {
   const config = getAppConfig();
 
-  // Devuelve información pública y no sensible sobre el estado del servidor.
   res.status(200).json({
     status: "ok",
     message: `Servidor ${config.appName} activo`,
     data: {
       project: config.appName,
-      module: 6,
+      module: 7,
       stage: config.appStage,
+      database: "PostgreSQL",
+      orm: "Sequelize",
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime())
     }
   });
 };
 
-const getTasks = (req, res, next) => {
-  try {
-    const config = getAppConfig();
-    const status = req.query.status || "all";
-    const search = req.query.search || "";
-
-    if (status !== "all" && !TASK_STATUSES.includes(status)) {
-      const error = new Error("Estado de tarea no válido");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const tasks = listTasks({
-      status,
-      search
-    });
-
-    res.status(200).json({
-      status: "ok",
-      message: "Tareas obtenidas correctamente",
-      data: {
-        tasks,
-        summary: getTaskSummary(tasks),
-        persistence: "memory",
-        nextStage: "Reemplazar el arreglo por una base de datos en el Módulo 7"
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
+const createTask = async (req, res) => {
+  await addTask(req.body);
+  res.redirect(303, "/#tareas");
 };
 
-const createTask = (req, res, next) => {
-  try {
-    addTask(req.body);
-    res.redirect(303, "/#tareas");
-  } catch (error) {
-    next(error);
-  }
+const moveTaskForward = async (req, res) => {
+  await advanceTask(req.params.id);
+  res.redirect(303, "/#tareas");
 };
 
-const moveTaskForward = (req, res, next) => {
-  try {
-    advanceTask(req.params.id);
-    res.redirect(303, "/#tareas");
-  } catch (error) {
-    next(error);
-  }
+const deleteTask = async (req, res) => {
+  await removeTask(req.params.id);
+  res.redirect(303, "/#tareas");
 };
 
-const deleteTask = (req, res, next) => {
-  try {
-    removeTask(req.params.id);
-    res.redirect(303, "/#tareas");
-  } catch (error) {
-    next(error);
-  }
+const createUserFromForm = async (req, res) => {
+  await createUser({ ...req.body, active: true });
+  res.redirect(303, "/users");
+};
+
+const deleteUserFromForm = async (req, res) => {
+  await deleteUser(req.params.id);
+  res.redirect(303, "/users");
 };
 
 module.exports = {
   createTask,
+  createUserFromForm,
   deleteTask,
+  deleteUserFromForm,
   getHome,
   getStatus,
-  getTasks,
+  getUsersPage,
   moveTaskForward
 };

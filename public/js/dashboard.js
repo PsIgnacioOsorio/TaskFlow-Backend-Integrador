@@ -6,7 +6,14 @@
   const emptyState = document.querySelector("#empty-state");
   const clearFiltersButton = document.querySelector("#clear-filters");
 
-  if (!searchInput || taskCards.length === 0) return;
+  if (!searchInput) return;
+
+  if (taskCards.length === 0) {
+    filterSummary.textContent = "0 tareas registradas";
+    emptyState.hidden = false;
+    clearFiltersButton?.setAttribute("hidden", "");
+    return;
+  }
 
   let selectedStatus = "all";
 
