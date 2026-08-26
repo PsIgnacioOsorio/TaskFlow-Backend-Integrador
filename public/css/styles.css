@@ -49,6 +49,7 @@ body {
 
 .summary-card,
 .task-item,
+.user-item,
 .form-card {
   border: 1px solid var(--taskflow-border) !important;
 }
@@ -73,6 +74,10 @@ body {
 
 .task-actions {
   flex: 0 0 7rem;
+}
+
+.user-actions {
+  flex: 0 0 9rem;
 }
 
 .task-item {
@@ -109,7 +114,9 @@ body {
 
   .search-box,
   .task-actions,
-  .task-actions form {
+  .task-actions form,
+  .user-actions,
+  .user-actions form {
     width: 100%;
   }
 }

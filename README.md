@@ -1,186 +1,279 @@
 # TaskFlow Backend Integrador
 
-Parte 1 del proyecto integrador de los módulos 6, 7 y 8. Esta entrega construye una aplicación básica de tareas con Node.js, Express, HBS y Bootstrap.
+Parte 2 del proyecto integrador de los módulos 6, 7 y 8. TaskFlow conserva el servidor Express, las vistas HBS, Bootstrap, el registro en archivo y la página 404 del Módulo 6; en esta entrega agrega persistencia real con PostgreSQL y Sequelize.
 
-La pantalla principal permite agregar, buscar, filtrar, avanzar y eliminar tareas. Por ahora los datos se guardan en memoria: permanecen mientras el servidor está encendido y se reinician al detenerlo. En el Módulo 7, el servicio de tareas se conectará a una base de datos.
+La aplicación administra usuarios y tareas. Cada tarea pertenece a un usuario mediante una relación 1:N y permanece disponible después de reiniciar el servidor.
 
 ## Tecnologías
 
 - Node.js 18 o superior
-- Express
+- Express 5
+- PostgreSQL 18
+- Sequelize 6
+- `pg` y `pg-hstore`
 - HBS
 - Bootstrap 5 instalado con npm
 - dotenv
 - nodemon
-- Módulo nativo `fs`
-- Módulo nativo `node:test`
+- `fs` para el registro de accesos
+- `node:test` para pruebas automáticas
 
-## Funciones actuales
+## Funciones
 
-- Vista dinámica HBS en `/`.
-- Formulario para crear tareas.
-- Cambio de estado: pendiente, en curso y completada.
-- Eliminación de tareas.
-- Búsqueda y filtros en el navegador.
-- Listado JSON en `/api/tasks`.
-- Estado del servidor en `/status`.
+- Gestión visual básica de usuarios y tareas.
+- Persistencia en las tablas `users` y `tasks`.
+- CRUD completo de usuarios y tareas mediante JSON.
+- Relación `User 1:N Task` consultada mediante `include`.
+- Búsqueda por texto y filtros por estado, responsable o actividad.
+- Consulta de usuarios con SQL directo usando `pg`.
+- Consulta equivalente con Sequelize.
+- Comparación de resultados SQL versus ORM.
+- Transacción que crea un usuario y su primera tarea.
+- Rollback demostrable mediante una falla controlada.
+- Validaciones, errores JSON consistentes y códigos HTTP apropiados.
 - Registro de accesos en `logs/log.txt`.
-- Página 404 para rutas web inexistentes y errores JSON para la API.
+- Página web 404 para rutas inexistentes.
+
+## Preparar PostgreSQL
+
+El proyecto utiliza una base local llamada `taskflow_db` y un usuario dedicado llamado `taskflow_user`.
+
+Desde `psql`, como usuario administrador:
+
+```sql
+CREATE ROLE taskflow_user WITH LOGIN;
+\password taskflow_user
+CREATE DATABASE taskflow_db OWNER taskflow_user;
+```
+
+La contraseña se define de forma local y no debe guardarse en GitHub.
 
 ## Instalación
 
-Abre una terminal dentro de `TaskFlow-Backend-Integrador` y ejecuta:
+Instala las dependencias:
 
 ```bash
 npm install
 ```
 
-Crea `.env` a partir de `.env.example`.
-
-PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-CMD:
-
-```bat
-copy .env.example .env
-```
-
-macOS, Linux o Git Bash:
+Crea `.env` a partir de `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Variables incluidas:
+Configura tu contraseña real únicamente dentro de `.env`:
 
 ```env
 PORT=3000
 NODE_ENV=development
 APP_NAME=TaskFlow
-APP_STAGE="Parte 1 - Módulo 6"
+APP_STAGE="Parte 2 - Módulo 7"
 LOG_TIME_ZONE=America/Santiago
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=taskflow_db
+DB_USER=taskflow_user
+DB_PASSWORD=TU_CONTRASENA_LOCAL
+DB_SSL=false
+DB_LOGGING=false
 ```
 
-## Comandos
+`.env` está ignorado por Git. `.env.example` solo contiene valores de referencia.
 
-Iniciar normalmente:
+## Crear tablas y datos iniciales
+
+Ejecuta una vez:
+
+```bash
+npm run db:setup
+```
+
+El comando crea las tablas mediante Sequelize y agrega tres usuarios y tres tareas de ejemplo. Es idempotente: puede repetirse sin duplicar esos datos.
+
+Comprueba la conexión y la cantidad de registros:
+
+```bash
+npm run db:check
+```
+
+## Ejecutar TaskFlow
+
+Modo normal:
 
 ```bash
 npm start
 ```
 
-Iniciar en desarrollo:
+Modo desarrollo:
 
 ```bash
 npm run dev
 ```
 
-Ejecución directa solicitada en la pauta:
+Luego abre:
 
-```bash
-node app.js
-```
+- `http://localhost:3000/` para tareas.
+- `http://localhost:3000/users` para usuarios.
+- `http://localhost:3000/status` para el estado del servidor.
 
-Ejecutar pruebas:
+## Pruebas
 
-```bash
-npm test
-```
-
-Comprobar el proyecto antes de entregar:
+Pruebas rápidas de rutas, validaciones, archivos estáticos, errores y logging:
 
 ```bash
 npm run check
 ```
 
-Luego abre `http://localhost:3000`.
+Pruebas de integración sobre PostgreSQL real:
 
-## Rutas
+```bash
+npm run test:db
+```
+
+Comprobación completa:
+
+```bash
+npm run check:all
+```
+
+Las pruebas de integración crean registros con correos únicos, verifican CRUD, filtros, `include`, SQL directo y rollback, y luego eliminan los datos temporales.
+
+## Rutas web
 
 | Método | Ruta | Uso |
 |---|---|---|
-| GET | `/` | Muestra la aplicación TaskFlow |
-| GET | `/status` | Devuelve el estado del servidor en JSON |
-| GET | `/api/tasks` | Lista las tareas en JSON |
-| GET | `/api/tasks?status=completed` | Filtra por estado |
-| GET | `/api/tasks?search=drive` | Busca por título o descripción |
-| POST | `/tasks` | Crea una tarea desde el formulario |
-| POST | `/tasks/:id/advance` | Avanza el estado de una tarea |
-| POST | `/tasks/:id/delete` | Elimina una tarea |
-| GET | Cualquier ruta web inexistente | Muestra la página 404 con acceso al tablero |
+| GET | `/` | Tablero HBS de tareas |
+| GET | `/users` | Gestión HBS de usuarios |
+| POST | `/users` | Crear usuario desde formulario |
+| POST | `/users/:id/delete` | Eliminar usuario desde formulario |
+| POST | `/tasks` | Crear tarea desde formulario |
+| POST | `/tasks/:id/advance` | Avanzar estado desde el tablero |
+| POST | `/tasks/:id/delete` | Eliminar tarea desde el tablero |
+| GET | `/status` | Estado del servidor |
 
-## Estructura
+## Rutas de datos
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | `/usuarios` | Listar usuarios con Sequelize |
+| GET | `/usuarios?search=camila&active=true` | Buscar y filtrar usuarios |
+| POST | `/usuarios` | Crear usuario |
+| PUT | `/usuarios/:id` | Actualizar campos permitidos |
+| DELETE | `/usuarios/:id` | Eliminar usuario y sus tareas |
+| GET | `/usuarios/sql` | Listar usuarios con SQL directo y `pg` |
+| GET | `/usuarios/comparacion` | Comparar SQL directo y Sequelize |
+| GET | `/usuarios/:id/tareas` | Obtener un usuario y sus tareas con `include` |
+| GET | `/tareas` | Listar tareas y responsables |
+| GET | `/tareas?status=pending&search=informe` | Filtrar y buscar tareas |
+| POST | `/tareas` | Crear tarea |
+| PUT | `/tareas/:id` | Actualizar tarea |
+| DELETE | `/tareas/:id` | Eliminar tarea |
+| POST | `/transacciones/usuario-tarea` | Crear usuario y tarea dentro de una transacción |
+| GET | `/api/tasks` | Alias conservado desde el Módulo 6 |
+
+## Ejemplo de usuario
+
+```json
+{
+  "name": "Ana Pérez",
+  "email": "ana@example.com",
+  "active": true
+}
+```
+
+## Ejemplo de tarea
+
+```json
+{
+  "title": "Preparar informe",
+  "description": "Revisar resultados del proyecto",
+  "status": "pending",
+  "priority": "high",
+  "dueDate": "2026-09-15",
+  "userId": 1
+}
+```
+
+## Transacción y rollback
+
+La ruta transaccional recibe un usuario y una tarea. Ambas operaciones se confirman juntas. Si cualquiera falla, PostgreSQL revierte todo.
+
+Para forzar la demostración del rollback se envía:
+
+```json
+{
+  "user": {
+    "name": "Prueba Rollback",
+    "email": "rollback@example.com",
+    "active": true
+  },
+  "task": {
+    "title": "No debe persistir",
+    "description": "Prueba controlada",
+    "status": "pending",
+    "priority": "medium",
+    "dueDate": "2026-09-16"
+  },
+  "forceFailure": true
+}
+```
+
+El servidor muestra `[TRANSACCION ROLLBACK]` y el usuario no queda almacenado.
+
+## Decisiones técnicas
+
+- Se eligió PostgreSQL porque el dominio tiene relaciones claras y requiere consistencia transaccional.
+- Sequelize reduce SQL repetitivo, centraliza modelos y validaciones, y permite consultar relaciones con `include`.
+- `pg` se conserva para demostrar una consulta SQL parametrizada y compararla con el ORM.
+- Las credenciales se leen desde `.env`; nunca se escriben en el código ni en el repositorio.
+- Las actualizaciones aceptan solamente campos definidos por los servicios. Los IDs y valores enumerados se validan antes de consultar la base.
+- Los usuarios todavía no almacenan contraseñas. Registro, login, hash, JWT y rutas privadas corresponden al Módulo 8.
+
+## Estructura principal
 
 ```text
 TaskFlow-Backend-Integrador/
 ├── app.js
-├── package.json
-├── package-lock.json
-├── .env.example
-├── .gitignore
-├── README.md
+├── config/
+│   └── database.js
 ├── controllers/
+│   ├── data.controller.js
 │   └── web.controller.js
-├── docs/
-│   └── flujo-cliente-servidor.md
-├── logs/
-│   └── log.txt
-├── middlewares/
-│   ├── errorHandler.middleware.js
-│   ├── notFound.middleware.js
-│   └── requestLogger.middleware.js
-├── postman/
-│   └── TaskFlow-Modulo6.postman_collection.json
-├── public/
-│   ├── css/styles.css
-│   └── js/dashboard.js
+├── models/
+│   ├── index.js
+│   ├── task.model.js
+│   └── user.model.js
 ├── routes/
+│   ├── data.routes.js
 │   └── web.routes.js
+├── scripts/
+│   ├── checkDatabase.js
+│   └── setupDatabase.js
 ├── services/
-│   ├── accessLog.service.js
-│   └── task.service.js
+│   ├── databaseSetup.service.js
+│   ├── sqlUser.service.js
+│   ├── task.service.js
+│   └── user.service.js
 ├── tests/
-│   └── app.test.js
-├── utils/
-│   └── dateTime.util.js
-└── views/
-    ├── home.hbs
-    └── not-found.hbs
+│   ├── app.test.js
+│   └── database.integration.js
+├── views/
+│   ├── home.hbs
+│   ├── users.hbs
+│   └── not-found.hbs
+├── public/
+├── middlewares/
+├── docs/
+├── postman/
+└── logs/
 ```
 
-## Registro de accesos
+## Continuidad
 
-El middleware de accesos usa `fs.appendFile()` para agregar una línea sin borrar las anteriores.
-
-```text
-fecha=AAAA-MM-DD hora=HH:MM:SS zona=America/Santiago metodo=GET ruta=/status
-```
-
-## Relación con la pauta del Módulo 6
-
-| Requisito | Implementación |
-|---|---|
-| Node.js y Express | `app.js` |
-| Variables de entorno | `.env.example` y `dotenv` |
-| Scripts de ejecución | `npm start` y `npm run dev` |
-| Dos rutas públicas | `/` y `/status` |
-| Archivos estáticos | `public` y Bootstrap servido localmente |
-| Archivo plano | `logs/log.txt` mediante `fs.appendFile()` |
-| Estructura modular | Rutas, controladores, middlewares y servicios |
-| Vista dinámica | HBS con tareas entregadas por Express |
-| Router externo | `routes/web.routes.js` |
-| Página no encontrada | `views/not-found.hbs` y middlewares de error |
-| Documentación | README, diagrama y colección Postman |
-
-## Continuidad del proyecto
-
-- **Módulo 6:** interfaz básica, servidor, rutas, formularios y log de accesos.
-- **Módulo 7:** reemplazar el arreglo en memoria por base de datos, ORM y CRUD persistente.
-- **Módulo 8:** agregar autenticación JWT, rutas privadas y carga de archivos.
+- **Módulo 6:** Express, HBS, Bootstrap, rutas, archivos estáticos, errores y log plano.
+- **Módulo 7:** PostgreSQL, Sequelize, modelos, CRUD, relaciones y transacciones.
+- **Módulo 8:** autenticación, JWT, rutas privadas y subida validada de archivos.
 
 ## Autor
 
