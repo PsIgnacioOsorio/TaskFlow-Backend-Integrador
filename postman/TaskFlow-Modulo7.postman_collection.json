@@ -1,0 +1,183 @@
+{
+  "info": {
+    "_postman_id": "d7bdbeaa-fdbf-47aa-91ea-804915b42467",
+    "name": "TaskFlow Backend Integrador - Módulo 7",
+    "description": "CRUD de usuarios y tareas con PostgreSQL, Sequelize, SQL directo, relaciones y transacciones.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "userId", "value": "1", "type": "string" },
+    { "key": "taskId", "value": "1", "type": "string" },
+    { "key": "transactionUserId", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Estado del servidor",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/status" }
+    },
+    {
+      "name": "02 - Listar usuarios con Sequelize",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/usuarios" }
+    },
+    {
+      "name": "03 - Listar usuarios con SQL directo",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/usuarios/sql" }
+    },
+    {
+      "name": "04 - Comparar ORM y SQL",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/usuarios/comparacion" }
+    },
+    {
+      "name": "05 - Crear usuario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('Usuario creado', () => pm.expect(pm.response.code).to.eql(201));",
+              "pm.collectionVariables.set('userId', body.data.user.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Usuario Postman\",\n  \"email\": \"postman-{{$timestamp}}@taskflow.local\",\n  \"active\": true\n}"
+        },
+        "url": "{{baseUrl}}/usuarios"
+      }
+    },
+    {
+      "name": "06 - Actualizar usuario",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Usuario Postman Actualizado\",\n  \"active\": true\n}"
+        },
+        "url": "{{baseUrl}}/usuarios/{{userId}}"
+      }
+    },
+    {
+      "name": "07 - Crear tarea relacionada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('Tarea creada', () => pm.expect(pm.response.code).to.eql(201));",
+              "pm.collectionVariables.set('taskId', body.data.task.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Tarea creada desde Postman\",\n  \"description\": \"Comprobar persistencia y relación\",\n  \"status\": \"pending\",\n  \"priority\": \"high\",\n  \"dueDate\": \"2026-09-15\",\n  \"userId\": {{userId}}\n}"
+        },
+        "url": "{{baseUrl}}/tareas"
+      }
+    },
+    {
+      "name": "08 - Filtrar y buscar tareas",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/tareas?status=pending&search=Postman&userId={{userId}}"
+      }
+    },
+    {
+      "name": "09 - Usuario con tareas mediante include",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/usuarios/{{userId}}/tareas"
+      }
+    },
+    {
+      "name": "10 - Actualizar tarea",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"completed\",\n  \"priority\": \"medium\"\n}"
+        },
+        "url": "{{baseUrl}}/tareas/{{taskId}}"
+      }
+    },
+    {
+      "name": "11 - Transacción exitosa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('Transacción confirmada', () => pm.expect(pm.response.code).to.eql(201));",
+              "pm.collectionVariables.set('transactionUserId', body.data.user.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user\": {\n    \"name\": \"Usuario Transacción\",\n    \"email\": \"transaccion-{{$timestamp}}@taskflow.local\",\n    \"active\": true\n  },\n  \"task\": {\n    \"title\": \"Primera tarea transaccional\",\n    \"description\": \"Las dos acciones deben confirmarse juntas\",\n    \"status\": \"pending\",\n    \"priority\": \"medium\",\n    \"dueDate\": \"2026-09-16\"\n  },\n  \"forceFailure\": false\n}"
+        },
+        "url": "{{baseUrl}}/transacciones/usuario-tarea"
+      }
+    },
+    {
+      "name": "12 - Transacción fallida con rollback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rollback controlado', () => pm.expect(pm.response.code).to.eql(400));",
+              "pm.test('Mensaje de rollback', () => pm.expect(pm.response.json().message).to.include('rollback'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user\": {\n    \"name\": \"Usuario Rollback\",\n    \"email\": \"rollback-{{$timestamp}}@taskflow.local\",\n    \"active\": true\n  },\n  \"task\": {\n    \"title\": \"Esta tarea no debe persistir\",\n    \"description\": \"Falla controlada\",\n    \"status\": \"pending\",\n    \"priority\": \"medium\",\n    \"dueDate\": \"2026-09-17\"\n  },\n  \"forceFailure\": true\n}"
+        },
+        "url": "{{baseUrl}}/transacciones/usuario-tarea"
+      }
+    },
+    {
+      "name": "13 - Eliminar tarea",
+      "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/tareas/{{taskId}}" }
+    },
+    {
+      "name": "14 - Eliminar usuario",
+      "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/usuarios/{{userId}}" }
+    },
+    {
+      "name": "15 - Limpiar usuario de transacción",
+      "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/usuarios/{{transactionUserId}}" }
+    }
+  ]
+}
