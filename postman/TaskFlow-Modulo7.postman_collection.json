@@ -7,25 +7,81 @@
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
-    { "key": "userId", "value": "1", "type": "string" },
-    { "key": "taskId", "value": "1", "type": "string" },
-    { "key": "transactionUserId", "value": "1", "type": "string" }
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "taskId", "value": "", "type": "string" },
+    { "key": "transactionUserId", "value": "", "type": "string" },
+    { "key": "rollbackEmail", "value": "", "type": "string" },
+    { "key": "rollbackTaskTitle", "value": "", "type": "string" }
   ],
   "item": [
     {
       "name": "01 - Estado del servidor",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('Servidor y Módulo 7 activos', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(body.status).to.eql('ok');",
+            "  pm.expect(body.data.module).to.eql(7);",
+            "});"
+          ]
+        }
+      }],
       "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/status" }
     },
     {
       "name": "02 - Listar usuarios con Sequelize",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('Sequelize devuelve al menos 3 usuarios', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(body.data.users).to.be.an('array').with.length.of.at.least(3);",
+            "});"
+          ]
+        }
+      }],
       "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/usuarios" }
     },
     {
       "name": "03 - Listar usuarios con SQL directo",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('SQL directo devuelve usuarios sin datos sensibles', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(body.data.users).to.be.an('array');",
+            "  body.data.users.forEach((user) => pm.expect(user).not.to.have.property('password'));",
+            "});"
+          ]
+        }
+      }],
       "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/usuarios/sql" }
     },
     {
       "name": "04 - Comparar ORM y SQL",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('SQL y Sequelize entregan los mismos datos públicos', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(body.data.sameData).to.eql(true);",
+            "});"
+          ]
+        }
+      }],
       "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/usuarios/comparacion" }
     },
     {
@@ -37,8 +93,11 @@
             "type": "text/javascript",
             "exec": [
               "const body = pm.response.json();",
-              "pm.test('Usuario creado', () => pm.expect(pm.response.code).to.eql(201));",
-              "pm.collectionVariables.set('userId', body.data.user.id);"
+              "pm.test('Usuario creado', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(body.data.user.email).to.include('@taskflow.local');",
+              "});",
+              "if (pm.response.code === 201) pm.collectionVariables.set('userId', body.data.user.id);"
             ]
           }
         }
@@ -55,6 +114,19 @@
     },
     {
       "name": "06 - Actualizar usuario",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('PUT confirma la actualización del usuario', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(body.data.user.name).to.eql('Usuario Postman Actualizado');",
+            "});"
+          ]
+        }
+      }],
       "request": {
         "method": "PUT",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -74,8 +146,11 @@
             "type": "text/javascript",
             "exec": [
               "const body = pm.response.json();",
-              "pm.test('Tarea creada', () => pm.expect(pm.response.code).to.eql(201));",
-              "pm.collectionVariables.set('taskId', body.data.task.id);"
+              "pm.test('Tarea creada y relacionada', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(String(body.data.task.userId)).to.eql(String(pm.collectionVariables.get('userId')));",
+              "});",
+              "if (pm.response.code === 201) pm.collectionVariables.set('taskId', body.data.task.id);"
             ]
           }
         }
@@ -92,6 +167,23 @@
     },
     {
       "name": "08 - Filtrar y buscar tareas",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('Los filtros devuelven la tarea esperada', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(body.data.tasks).to.be.an('array').that.is.not.empty;",
+            "  body.data.tasks.forEach((task) => {",
+            "    pm.expect(task.status).to.eql('pending');",
+            "    pm.expect(String(task.userId)).to.eql(String(pm.collectionVariables.get('userId')));",
+            "  });",
+            "});"
+          ]
+        }
+      }],
       "request": {
         "method": "GET",
         "header": [],
@@ -100,6 +192,20 @@
     },
     {
       "name": "09 - Usuario con tareas mediante include",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('include devuelve el usuario con sus tareas anidadas', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(body.data.user.tasks).to.be.an('array');",
+            "  pm.expect(body.data.user.tasks.map((task) => String(task.id))).to.include(String(pm.collectionVariables.get('taskId')));",
+            "});"
+          ]
+        }
+      }],
       "request": {
         "method": "GET",
         "header": [],
@@ -108,6 +214,20 @@
     },
     {
       "name": "10 - Actualizar tarea",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('PUT confirma la actualización de la tarea', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(body.data.task.status).to.eql('completed');",
+            "  pm.expect(body.data.task.priority).to.eql('medium');",
+            "});"
+          ]
+        }
+      }],
       "request": {
         "method": "PUT",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -127,8 +247,11 @@
             "type": "text/javascript",
             "exec": [
               "const body = pm.response.json();",
-              "pm.test('Transacción confirmada', () => pm.expect(pm.response.code).to.eql(201));",
-              "pm.collectionVariables.set('transactionUserId', body.data.user.id);"
+              "pm.test('Transacción confirmada con dos registros relacionados', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(body.data.task.userId).to.eql(body.data.user.id);",
+              "});",
+              "if (pm.response.code === 201) pm.collectionVariables.set('transactionUserId', body.data.user.id);"
             ]
           }
         }
@@ -147,12 +270,38 @@
       "name": "12 - Transacción fallida con rollback",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = `${Date.now()}-${pm.info.iteration || 0}`;",
+              "pm.collectionVariables.set('rollbackEmail', `rollback-${token}@taskflow.local`);",
+              "pm.collectionVariables.set('rollbackTaskTitle', `Tarea rollback ${token}`);"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
               "pm.test('Rollback controlado', () => pm.expect(pm.response.code).to.eql(400));",
-              "pm.test('Mensaje de rollback', () => pm.expect(pm.response.json().message).to.include('rollback'));"
+              "pm.test('Mensaje de rollback', () => pm.expect(pm.response.json().message).to.include('rollback'));",
+              "const baseUrl = pm.collectionVariables.get('baseUrl');",
+              "const rollbackEmail = pm.collectionVariables.get('rollbackEmail');",
+              "const rollbackTaskTitle = pm.collectionVariables.get('rollbackTaskTitle');",
+              "pm.sendRequest(`${baseUrl}/usuarios?search=${encodeURIComponent(rollbackEmail)}`, (error, response) => {",
+              "  pm.test('El usuario fue revertido', () => {",
+              "    pm.expect(error).to.not.exist;",
+              "    pm.expect(response.json().data.users).to.have.length(0);",
+              "  });",
+              "});",
+              "pm.sendRequest(`${baseUrl}/tareas?search=${encodeURIComponent(rollbackTaskTitle)}`, (error, response) => {",
+              "  pm.test('La tarea fue revertida', () => {",
+              "    pm.expect(error).to.not.exist;",
+              "    pm.expect(response.json().data.tasks).to.have.length(0);",
+              "  });",
+              "});"
             ]
           }
         }
@@ -162,21 +311,60 @@
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"user\": {\n    \"name\": \"Usuario Rollback\",\n    \"email\": \"rollback-{{$timestamp}}@taskflow.local\",\n    \"active\": true\n  },\n  \"task\": {\n    \"title\": \"Esta tarea no debe persistir\",\n    \"description\": \"Falla controlada\",\n    \"status\": \"pending\",\n    \"priority\": \"medium\",\n    \"dueDate\": \"2026-09-17\"\n  },\n  \"forceFailure\": true\n}"
+          "raw": "{\n  \"user\": {\n    \"name\": \"Usuario Rollback\",\n    \"email\": \"{{rollbackEmail}}\",\n    \"active\": true\n  },\n  \"task\": {\n    \"title\": \"{{rollbackTaskTitle}}\",\n    \"description\": \"Falla controlada\",\n    \"status\": \"pending\",\n    \"priority\": \"medium\",\n    \"dueDate\": \"2026-09-17\"\n  },\n  \"forceFailure\": true\n}"
         },
         "url": "{{baseUrl}}/transacciones/usuario-tarea"
       }
     },
     {
       "name": "13 - Eliminar tarea",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('DELETE confirma la eliminación de la tarea', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(String(body.data.task.id)).to.eql(String(pm.collectionVariables.get('taskId')));",
+            "});"
+          ]
+        }
+      }],
       "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/tareas/{{taskId}}" }
     },
     {
       "name": "14 - Eliminar usuario",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('DELETE confirma la eliminación del usuario', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(String(body.data.user.id)).to.eql(String(pm.collectionVariables.get('userId')));",
+            "});"
+          ]
+        }
+      }],
       "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/usuarios/{{userId}}" }
     },
     {
       "name": "15 - Limpiar usuario de transacción",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "const body = pm.response.json();",
+            "pm.test('Los datos de la transacción exitosa se limpian al final', () => {",
+            "  pm.response.to.have.status(200);",
+            "  pm.expect(String(body.data.user.id)).to.eql(String(pm.collectionVariables.get('transactionUserId')));",
+            "});"
+          ]
+        }
+      }],
       "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/usuarios/{{transactionUserId}}" }
     }
   ]

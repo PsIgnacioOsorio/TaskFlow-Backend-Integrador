@@ -31,7 +31,10 @@ const isValidDateOnly = (value) => {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
 };
 
-const validateTaskPayload = (payload = {}, { partial = false } = {}) => {
+const validateTaskPayload = (
+  payload = {},
+  { partial = false, requireUserId = true } = {}
+) => {
   const cleanTask = {};
   const has = (property) => Object.prototype.hasOwnProperty.call(payload, property);
 
@@ -75,8 +78,10 @@ const validateTaskPayload = (payload = {}, { partial = false } = {}) => {
     cleanTask.dueDate = dueDate || null;
   }
 
-  if (!partial || has("userId")) {
+  if (has("userId")) {
     cleanTask.userId = parsePositiveId(payload.userId, "ID de usuario");
+  } else if (!partial && requireUserId) {
+    throw createHttpError(400, "El ID de usuario es obligatorio");
   }
 
   if (partial && Object.keys(cleanTask).length === 0) {

@@ -18,4 +18,4 @@ Sequelize permite definir modelos, reglas y relaciones una sola vez. Sus método
 
 ## Transacciones
 
-Crear un usuario y su tarea inicial son dos acciones dependientes. Si la segunda falla, no tiene sentido conservar un usuario incompleto. Por eso ambas acciones se ejecutan dentro de una transacción y se revierten juntas mediante rollback.
+Crear un usuario y su tarea inicial son dos acciones dependientes. Si el proceso falla antes del commit, no tiene sentido conservar datos incompletos. Por eso ambas escrituras se ejecutan dentro de una transacción y se revierten juntas mediante rollback. La prueba controlada fuerza el error después de crear los dos registros y confirma que ninguno persiste.

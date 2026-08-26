@@ -81,18 +81,18 @@ const findUserRecord = async (id, options = {}) => {
   return user;
 };
 
-const getUserWithTasks = async (id) => {
+const getUserWithTasks = async (id, { logging } = {}) => {
   const user = await findUserRecord(id, {
     attributes: USER_ATTRIBUTES,
     include: [
       {
         model: Task,
         as: "tasks",
-        attributes: ["id", "title", "description", "status", "priority", "dueDate"],
-        separate: true,
-        order: [["createdAt", "DESC"]]
+        attributes: ["id", "title", "description", "status", "priority", "dueDate"]
       }
-    ]
+    ],
+    order: [[{ model: Task, as: "tasks" }, "createdAt", "DESC"]],
+    ...(logging ? { logging } : {})
   });
   return presentUser(user);
 };
@@ -117,20 +117,26 @@ const deleteUser = async (id) => {
   return deletedUser;
 };
 
-const createUserWithInitialTask = async ({ user: userPayload, task: taskPayload, forceFailure }) => {
+const createUserWithInitialTask = async (
+  { user: userPayload, task: taskPayload, forceFailure } = {}
+) => {
   const cleanUser = validateUserPayload(userPayload);
-  const cleanTask = validateTaskPayload({ ...taskPayload, userId: 1 });
+  const cleanTask = validateTaskPayload(taskPayload, { requireUserId: false });
 
   try {
     const result = await sequelize.transaction(async (transaction) => {
       const user = await User.create(cleanUser, { transaction });
+      const task = await Task.create(
+        { ...cleanTask, userId: user.id },
+        { transaction }
+      );
 
+      // La falla se provoca después de ambas escrituras para comprobar que
+      // PostgreSQL revierte tanto el usuario como su tarea antes del commit.
       if (forceFailure === true || forceFailure === "true") {
         throw createHttpError(400, "Falla forzada para demostrar el rollback");
       }
 
-      cleanTask.userId = user.id;
-      const task = await Task.create(cleanTask, { transaction });
       return { user: presentUser(user), task: task.get({ plain: true }) };
     });
 

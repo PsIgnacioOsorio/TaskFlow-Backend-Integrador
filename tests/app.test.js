@@ -82,6 +82,38 @@ test("POST /tareas exige título y usuario responsable", async () => {
   assert.match(body.message, /título/i);
 });
 
+test("POST /transacciones valida ambas entidades antes de escribir", async () => {
+  const response = await fetch(`${baseUrl}/transacciones/usuario-tarea`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      user: { name: "Usuario válido", email: "valido@taskflow.local" },
+      task: { title: "", priority: "medium" }
+    })
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.equal(body.status, "error");
+  assert.match(body.message, /título/i);
+});
+
+test("un cuerpo JSON mal formado responde 400 con un mensaje seguro", async () => {
+  const response = await fetch(`${baseUrl}/usuarios`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{\"name\":\"JSON incompleto\""
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(body, {
+    status: "error",
+    message: "El cuerpo JSON no tiene un formato válido",
+    data: null
+  });
+});
+
 test("GET /tareas rechaza un estado desconocido sin consultar PostgreSQL", async () => {
   const response = await fetch(`${baseUrl}/tareas?status=desconocido`);
   const body = await response.json();
