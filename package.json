@@ -1,14 +1,19 @@
 {
   "name": "taskflow-backend-integrador",
-  "version": "1.0.0",
-  "description": "Base de TaskFlow con Express, HBS, Bootstrap y gestión temporal de tareas.",
+  "version": "2.0.0",
+  "description": "TaskFlow con Express, HBS, Bootstrap, PostgreSQL y Sequelize.",
   "main": "app.js",
   "type": "commonjs",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
     "test": "node --test",
-    "check": "npm test"
+    "test:db": "node --test tests/database.integration.js",
+    "db:setup": "node scripts/setupDatabase.js",
+    "db:check": "node scripts/checkDatabase.js",
+    "check:views": "node scripts/checkViews.js",
+    "check": "npm test && npm run check:views",
+    "check:all": "npm run check && npm run test:db"
   },
   "keywords": [
     "node",
@@ -26,9 +31,15 @@
     "bootstrap": "^5.3.8",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "hbs": "^4.2.1"
+    "hbs": "^4.2.1",
+    "pg": "^8.23.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.8"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }
