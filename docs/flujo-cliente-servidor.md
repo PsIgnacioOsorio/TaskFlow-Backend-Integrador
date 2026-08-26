@@ -57,7 +57,7 @@ El SQL directo permite observar con precisión la consulta ejecutada. Sequelize 
 
 ## Consulta de relaciones
 
-`GET /usuarios/:id/tareas` utiliza `include` para devolver un usuario junto con sus tareas en una respuesta anidada. No se devuelven contraseñas porque TaskFlow todavía no maneja credenciales; esa capacidad se agregará con autenticación en el Módulo 8.
+`GET /usuarios/:id/tareas` utiliza `include` para devolver un usuario junto con sus tareas en una respuesta anidada. La relación se resuelve mediante un único `SELECT` con `JOIN`, tal como solicita la pauta. No se devuelven contraseñas porque TaskFlow todavía no maneja credenciales; esa capacidad se agregará con autenticación en el Módulo 8.
 
 ## Transacción
 
@@ -66,7 +66,7 @@ El SQL directo permite observar con precisión la consulta ejecutada. Sequelize 
 1. Crear un usuario.
 2. Crear su primera tarea.
 
-Ambas se ejecutan dentro de `sequelize.transaction()`. Si la tarea falla o se envía `forceFailure: true`, Sequelize realiza rollback y tampoco conserva el usuario. El servidor registra en consola si la transacción terminó correctamente o fue revertida.
+Ambas se ejecutan dentro de `sequelize.transaction()`. Para demostrar el rollback, `forceFailure: true` provoca una falla controlada después de las dos escrituras y antes del commit. Sequelize revierte tanto la tarea como el usuario. El servidor registra en consola si la transacción terminó correctamente o fue revertida.
 
 ## Persistencia del Módulo 6
 

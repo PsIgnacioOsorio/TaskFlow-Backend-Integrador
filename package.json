@@ -12,7 +12,8 @@
     "db:setup": "node scripts/setupDatabase.js",
     "db:check": "node scripts/checkDatabase.js",
     "check:views": "node scripts/checkViews.js",
-    "check": "npm test && npm run check:views",
+    "check:postman": "node scripts/checkPostman.js",
+    "check": "npm test && npm run check:views && npm run check:postman",
     "check:all": "npm run check && npm run test:db"
   },
   "keywords": [

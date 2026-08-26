@@ -24,6 +24,7 @@ La aplicación administra usuarios y tareas. Cada tarea pertenece a un usuario m
 - Persistencia en las tablas `users` y `tasks`.
 - CRUD completo de usuarios y tareas mediante JSON.
 - Relación `User 1:N Task` consultada mediante `include`.
+- Consulta del usuario y sus tareas en un único `SELECT` con `JOIN`.
 - Búsqueda por texto y filtros por estado, responsable o actividad.
 - Consulta de usuarios con SQL directo usando `pg`.
 - Consulta equivalente con Sequelize.
@@ -125,6 +126,12 @@ Pruebas rápidas de rutas, validaciones, archivos estáticos, errores y logging:
 npm run check
 ```
 
+Validación independiente de las 15 solicitudes y pruebas de Postman:
+
+```bash
+npm run check:postman
+```
+
 Pruebas de integración sobre PostgreSQL real:
 
 ```bash
@@ -137,7 +144,9 @@ Comprobación completa:
 npm run check:all
 ```
 
-Las pruebas de integración crean registros con correos únicos, verifican CRUD, filtros, `include`, SQL directo y rollback, y luego eliminan los datos temporales.
+Las pruebas de integración crean registros con correos únicos, verifican CRUD, filtros, un único `SELECT` con `include`, SQL directo, transacción exitosa y rollback de usuario y tarea; después eliminan los datos temporales.
+
+La correspondencia completa entre los criterios de evaluación y sus evidencias está en [`docs/verificacion-pauta-modulo7.md`](docs/verificacion-pauta-modulo7.md).
 
 ## Rutas web
 
@@ -219,7 +228,7 @@ Para forzar la demostración del rollback se envía:
 }
 ```
 
-El servidor muestra `[TRANSACCION ROLLBACK]` y el usuario no queda almacenado.
+La falla controlada ocurre después de intentar ambas escrituras. El servidor muestra `[TRANSACCION ROLLBACK]` y no queda almacenado ni el usuario ni la tarea.
 
 ## Decisiones técnicas
 
@@ -249,6 +258,7 @@ TaskFlow-Backend-Integrador/
 │   └── web.routes.js
 ├── scripts/
 │   ├── checkDatabase.js
+│   ├── checkPostman.js
 │   └── setupDatabase.js
 ├── services/
 │   ├── databaseSetup.service.js

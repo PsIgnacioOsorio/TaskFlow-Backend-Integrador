@@ -3,6 +3,14 @@ const isDataRequest = (req) => {
 };
 
 const normalizeError = (error) => {
+  if (error.type === "entity.parse.failed") {
+    return {
+      statusCode: 400,
+      message: "El cuerpo JSON no tiene un formato válido",
+      details: null
+    };
+  }
+
   if (error.name === "SequelizeUniqueConstraintError") {
     return {
       statusCode: 409,
@@ -16,6 +24,14 @@ const normalizeError = (error) => {
       statusCode: 400,
       message: "Los datos enviados no son válidos",
       details: error.errors?.map((item) => item.message) || null
+    };
+  }
+
+  if (error.name === "SequelizeForeignKeyConstraintError") {
+    return {
+      statusCode: 409,
+      message: "La operación no puede completarse por una relación existente",
+      details: null
     };
   }
 
@@ -35,7 +51,7 @@ const normalizeError = (error) => {
     };
   }
 
-  const statusCode = error.statusCode || 500;
+  const statusCode = error.statusCode || error.status || 500;
   return {
     statusCode,
     message: statusCode === 500 ? "Error interno del servidor" : error.message,
