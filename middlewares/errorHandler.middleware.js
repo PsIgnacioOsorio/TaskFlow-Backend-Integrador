@@ -3,6 +3,15 @@ const isDataRequest = (req) => {
 };
 
 const normalizeError = (error) => {
+  if (error.name === "MulterError") {
+    return {
+      statusCode: error.code === "LIMIT_FILE_SIZE" ? 413 : 400,
+      message: error.code === "LIMIT_FILE_SIZE"
+        ? "El archivo supera el tamaño máximo permitido"
+        : "No fue posible procesar el archivo",
+      details: null
+    };
+  }
   if (error.type === "entity.parse.failed") {
     return {
       statusCode: 400,

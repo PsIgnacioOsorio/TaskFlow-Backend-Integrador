@@ -1,7 +1,8 @@
 const { Op } = require("sequelize");
-const { sequelize, Task, User } = require("../models");
+const { Profile, Project, sequelize, Task, User } = require("../models");
 const { createHttpError, parsePositiveId } = require("../utils/httpError.util");
 const { validateTaskPayload } = require("./task.service");
+const { removePreviousAvatar } = require("./upload.service");
 
 const USER_ATTRIBUTES = ["id", "name", "email", "active", "createdAt", "updatedAt"];
 
@@ -97,6 +98,27 @@ const getUserWithTasks = async (id, { logging } = {}) => {
   return presentUser(user);
 };
 
+const getUserWithRelations = async (id) => {
+  const user = await findUserRecord(id, {
+    attributes: USER_ATTRIBUTES,
+    include: [
+      { model: Profile, as: "profile", attributes: ["id", "bio", "avatarUrl", "userId"] },
+      {
+        model: Task,
+        as: "tasks",
+        attributes: ["id", "title", "status", "priority", "dueDate"]
+      },
+      {
+        model: Project,
+        as: "projects",
+        attributes: ["id", "name", "description", "ownerId"],
+        through: { attributes: ["joinedAt"] }
+      }
+    ]
+  });
+  return presentUser(user);
+};
+
 const createUser = async (payload, options = {}) => {
   const cleanUser = validateUserPayload(payload);
   const user = await User.create(cleanUser, { transaction: options.transaction });
@@ -110,10 +132,51 @@ const updateUser = async (id, payload) => {
   return presentUser(user);
 };
 
+const updateUserWithProfile = async (id, payload, { allowActive = false } = {}) => {
+  const has = (field) => Object.prototype.hasOwnProperty.call(payload, field);
+  const userPayload = {};
+  if (has("name")) userPayload.name = payload.name;
+  if (has("email")) userPayload.email = payload.email;
+  if (allowActive && has("active")) userPayload.active = payload.active;
+
+  const hasUserFields = Object.keys(userPayload).length > 0;
+  const hasBio = has("bio");
+  if (!hasUserFields && !hasBio) {
+    throw createHttpError(400, "No se recibieron campos válidos para actualizar");
+  }
+
+  const bio = hasBio ? String(payload.bio || "").trim() : null;
+  if (hasBio && bio.length > 240) {
+    throw createHttpError(400, "La biografía no puede superar 240 caracteres");
+  }
+
+  await sequelize.transaction(async (transaction) => {
+    const user = await findUserRecord(id, { transaction });
+    if (hasUserFields) {
+      const cleanUser = validateUserPayload(userPayload, { partial: true });
+      await user.update(cleanUser, { transaction });
+    }
+    if (hasBio) {
+      const [profile] = await Profile.findOrCreate({
+        where: { userId: user.id },
+        defaults: { bio, userId: user.id },
+        transaction
+      });
+      if (!profile.isNewRecord) await profile.update({ bio }, { transaction });
+    }
+  });
+
+  return getUserWithRelations(id);
+};
+
 const deleteUser = async (id) => {
-  const user = await findUserRecord(id);
+  const user = await findUserRecord(id, {
+    include: [{ model: Profile, as: "profile", attributes: ["avatarUrl"] }]
+  });
   const deletedUser = presentUser(user);
+  const avatarUrl = user.profile?.avatarUrl;
   await user.destroy();
+  await removePreviousAvatar(avatarUrl);
   return deletedUser;
 };
 
@@ -152,9 +215,12 @@ module.exports = {
   createUser,
   createUserWithInitialTask,
   deleteUser,
+  findUserRecord,
+  getUserWithRelations,
   getUserWithTasks,
   listUsers,
   presentUser,
   updateUser,
+  updateUserWithProfile,
   validateUserPayload
 };

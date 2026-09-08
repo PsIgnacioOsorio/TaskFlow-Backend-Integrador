@@ -162,6 +162,13 @@ const findTaskRecord = async (id, options = {}) => {
   return task;
 };
 
+const getTaskById = async (id) => {
+  const task = await findTaskRecord(id, {
+    include: [{ model: User, as: "user", attributes: ["id", "name", "email"] }]
+  });
+  return presentTask(task);
+};
+
 const addTask = async (payload, options = {}) => {
   const cleanTask = validateTaskPayload(payload);
   const user = await User.findByPk(cleanTask.userId, { transaction: options.transaction });
@@ -218,6 +225,8 @@ module.exports = {
   TASK_STATUSES,
   addTask,
   advanceTask,
+  findTaskRecord,
+  getTaskById,
   getTaskSummary,
   listTasks,
   presentTask,

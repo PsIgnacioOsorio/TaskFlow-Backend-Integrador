@@ -7,8 +7,9 @@ const run = async () => {
   try {
     await connectDatabase();
     await setupDatabase();
-    console.log("Tablas users y tasks preparadas correctamente.");
-    console.log("Datos iniciales disponibles: 3 usuarios y 3 tareas.");
+    console.log("Tablas y relaciones del Módulo 8 preparadas correctamente.");
+    console.log("Datos iniciales: 3 usuarios, 3 tareas, perfiles, credenciales y 1 proyecto.");
+    console.log("Acceso de demostración: ignacio@taskflow.local / SEED_USER_PASSWORD");
   } catch (error) {
     console.error(`No fue posible preparar la base de datos: ${error.message}`);
     process.exitCode = 1;
