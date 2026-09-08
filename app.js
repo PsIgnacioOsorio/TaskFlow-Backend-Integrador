@@ -5,10 +5,12 @@ const express = require("express");
 
 const { closeDatabase, connectDatabase } = require("./config/database");
 const dataRoutes = require("./routes/data.routes");
+const apiRoutes = require("./routes/api.routes");
 const webRoutes = require("./routes/web.routes");
 const requestLogger = require("./middlewares/requestLogger.middleware");
 const notFound = require("./middlewares/notFound.middleware");
 const errorHandler = require("./middlewares/errorHandler.middleware");
+const { getJwtConfig } = require("./services/token.service");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -21,17 +23,24 @@ app.use(requestLogger);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
+  dotfiles: "deny",
+  index: false,
+  maxAge: "1h"
+}));
 app.use(
   "/vendor/bootstrap",
   express.static(path.join(__dirname, "node_modules", "bootstrap", "dist"))
 );
 
+app.use("/api/v1", apiRoutes);
 app.use("/", webRoutes);
 app.use("/", dataRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
 const startServer = async () => {
+  getJwtConfig();
   await connectDatabase();
   return app.listen(PORT, () => {
     console.log(`Servidor iniciado en http://localhost:${PORT}`);

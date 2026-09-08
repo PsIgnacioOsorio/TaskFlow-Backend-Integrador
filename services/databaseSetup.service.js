@@ -1,4 +1,14 @@
-const { Task, User, sequelize } = require("../models");
+const bcrypt = require("bcryptjs");
+const {
+  Credential,
+  Profile,
+  Project,
+  ProjectMember,
+  Task,
+  User,
+  sequelize
+} = require("../models");
+const { getBcryptRounds, validatePassword } = require("./auth.service");
 
 const sampleUsers = [
   { name: "Ignacio Osorio", email: "ignacio@taskflow.local", active: true },
@@ -35,6 +45,10 @@ const sampleTasks = [
 
 const seedDatabase = async () => {
   const usersByEmail = new Map();
+  const seedPassword = validatePassword(
+    process.env.SEED_USER_PASSWORD || "TaskFlow2026!"
+  );
+  const passwordHash = await bcrypt.hash(seedPassword, getBcryptRounds());
 
   for (const userData of sampleUsers) {
     const [user] = await User.findOrCreate({
@@ -42,6 +56,22 @@ const seedDatabase = async () => {
       defaults: userData
     });
     usersByEmail.set(user.email, user);
+
+    await Credential.findOrCreate({
+      where: { userId: user.id },
+      defaults: {
+        userId: user.id,
+        passwordHash,
+        role: user.email === "ignacio@taskflow.local" ? "admin" : "user"
+      }
+    });
+    await Profile.findOrCreate({
+      where: { userId: user.id },
+      defaults: {
+        userId: user.id,
+        bio: `Perfil de demostración de ${user.name}`
+      }
+    });
   }
 
   for (const taskData of sampleTasks) {
@@ -50,6 +80,22 @@ const seedDatabase = async () => {
     await Task.findOrCreate({
       where: { title: taskData.title, userId: owner.id },
       defaults: { ...taskDefaults, userId: owner.id }
+    });
+  }
+
+  const owner = usersByEmail.get("ignacio@taskflow.local");
+  const [project] = await Project.findOrCreate({
+    where: { name: "Entrega integradora TaskFlow", ownerId: owner.id },
+    defaults: {
+      name: "Entrega integradora TaskFlow",
+      description: "Proyecto colaborativo para evidenciar la relación muchos a muchos.",
+      ownerId: owner.id
+    }
+  });
+  for (const user of usersByEmail.values()) {
+    await ProjectMember.findOrCreate({
+      where: { projectId: project.id, userId: user.id },
+      defaults: { projectId: project.id, userId: user.id }
     });
   }
 };

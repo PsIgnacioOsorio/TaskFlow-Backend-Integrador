@@ -13,7 +13,7 @@ const {
 
 const getAppConfig = () => ({
   appName: process.env.APP_NAME?.trim() || "TaskFlow",
-  appStage: process.env.APP_STAGE?.trim() || "Parte 2 - Módulo 7"
+  appStage: process.env.APP_STAGE?.trim() || "Parte 3 - Módulo 8"
 });
 
 const getHome = async (req, res) => {
@@ -53,10 +53,12 @@ const getStatus = (req, res) => {
     message: `Servidor ${config.appName} activo`,
     data: {
       project: config.appName,
-      module: 7,
+      module: 8,
       stage: config.appStage,
       database: "PostgreSQL",
       orm: "Sequelize",
+      apiVersion: "v1",
+      authentication: "JWT",
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime())
     }

@@ -9,6 +9,7 @@ const testLogFilePath = path.join(os.tmpdir(), `taskflow-${process.pid}.log`);
 process.env.NODE_ENV = "test";
 process.env.LOG_FILE_PATH = testLogFilePath;
 process.env.LOG_TIME_ZONE = "America/Santiago";
+process.env.JWT_SECRET = "clave-secreta-de-pruebas-taskflow-modulo-8-2026";
 
 const { app } = require("../app");
 
@@ -32,15 +33,74 @@ after(async () => {
   await fs.rm(testLogFilePath, { force: true });
 });
 
-test("GET /status identifica el Módulo 7, PostgreSQL y Sequelize", async () => {
+test("GET /status identifica el Módulo 8, PostgreSQL, Sequelize y JWT", async () => {
   const response = await fetch(`${baseUrl}/status`);
   const body = await response.json();
 
   assert.equal(response.status, 200);
   assert.equal(body.status, "ok");
-  assert.equal(body.data.module, 7);
+  assert.equal(body.data.module, 8);
   assert.equal(body.data.database, "PostgreSQL");
   assert.equal(body.data.orm, "Sequelize");
+  assert.equal(body.data.authentication, "JWT");
+});
+
+test("GET /api/v1/status publica la versión de la API sin autenticación", async () => {
+  const response = await fetch(`${baseUrl}/api/v1/status`);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.data.apiVersion, "v1");
+  assert.equal(body.data.module, 8);
+});
+
+test("dos recursos privados rechazan solicitudes sin token", async () => {
+  const responses = await Promise.all([
+    fetch(`${baseUrl}/api/v1/tasks`),
+    fetch(`${baseUrl}/api/v1/projects`)
+  ]);
+
+  for (const response of responses) {
+    const body = await response.json();
+    assert.equal(response.status, 401);
+    assert.equal(body.status, "error");
+    assert.match(body.message, /Bearer/i);
+  }
+});
+
+test("un JWT alterado responde 401 antes de consultar PostgreSQL", async () => {
+  const response = await fetch(`${baseUrl}/api/v1/users`, {
+    headers: { authorization: "Bearer token.alterado.invalido" }
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 401);
+  assert.equal(body.message, "Token no válido");
+});
+
+test("registro y login validan el cuerpo antes de acceder a la base", async () => {
+  const [registerResponse, loginResponse] = await Promise.all([
+    fetch(`${baseUrl}/api/v1/auth/register`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "A", email: "mal", password: "123" })
+    }),
+    fetch(`${baseUrl}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "mal", password: "" })
+    })
+  ]);
+
+  assert.equal(registerResponse.status, 400);
+  assert.equal(loginResponse.status, 400);
+  assert.ok(Array.isArray((await registerResponse.json()).details));
+  assert.ok(Array.isArray((await loginResponse.json()).details));
+});
+
+test("POST /api/v1/upload también exige JWT", async () => {
+  const response = await fetch(`${baseUrl}/api/v1/upload`, { method: "POST" });
+  assert.equal(response.status, 401);
 });
 
 test("sirve Bootstrap y los archivos estáticos de tareas y usuarios", async () => {
