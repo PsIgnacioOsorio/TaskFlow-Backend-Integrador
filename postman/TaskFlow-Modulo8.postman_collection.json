@@ -1,0 +1,214 @@
+{
+  "info": {
+    "_postman_id": "4fa7850a-b61e-49d9-95a1-taskflowmodulo8",
+    "name": "TaskFlow Backend Integrador - Módulo 8",
+    "description": "API REST v1 con registro, login JWT, recursos protegidos, CRUD, relaciones y carga de avatar. Ejecutar en orden con Collection Runner. La solicitud 18 valida el error sin archivo; para evidenciar carga exitosa selecciónala individualmente y adjunta una imagen PNG/JPEG/WEBP menor a 2 MiB.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('runId')) {",
+          "  const runId = Date.now().toString();",
+          "  pm.collectionVariables.set('runId', runId);",
+          "  pm.collectionVariables.set('email', `postman-m8-${runId}@taskflow.local`);",
+          "  pm.collectionVariables.set('password', 'Modulo82026!');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "runId", "value": "" },
+    { "key": "email", "value": "" },
+    { "key": "password", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "memberId", "value": "" },
+    { "key": "taskId", "value": "" },
+    { "key": "projectId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Estado público de la API",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/status" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('API v1 y Módulo 8 activos', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.module).to.eql(8); });"] } }]
+    },
+    {
+      "name": "02 - Registrar cuenta",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Usuario Postman M8\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"bio\": \"Perfil creado desde Postman\"\n}" },
+        "url": "{{baseUrl}}/api/v1/auth/register"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Cuenta creada sin exponer hash', () => {", "  pm.response.to.have.status(201);", "  const json = pm.response.json();", "  pm.expect(json.data.user).not.to.have.property('credential');", "  pm.collectionVariables.set('userId', json.data.user.id);", "});"] } }]
+    },
+    {
+      "name": "03 - Rechazar correo duplicado",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Duplicado\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+        "url": "{{baseUrl}}/api/v1/auth/register"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Conflicto controlado', () => pm.response.to.have.status(409));"] } }]
+    },
+    {
+      "name": "04 - Rechazar login incorrecto",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"Incorrecta1\"\n}" },
+        "url": "{{baseUrl}}/api/v1/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Credenciales inválidas', () => pm.response.to.have.status(401));"] } }]
+    },
+    {
+      "name": "05 - Login y obtener JWT",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+        "url": "{{baseUrl}}/api/v1/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('JWT válido recibido', () => {", "  pm.response.to.have.status(200);", "  const data = pm.response.json().data;", "  pm.expect(data.tokenType).to.eql('Bearer');", "  pm.collectionVariables.set('token', data.token);", "});"] } }]
+    },
+    {
+      "name": "06 - Tareas protegidas Sin token",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/tasks" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Primera ruta protegida responde 401', () => pm.response.to.have.status(401));"] } }]
+    },
+    {
+      "name": "07 - Proyectos protegidos Sin token",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/projects" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Segunda ruta protegida responde 401', () => pm.response.to.have.status(401));"] } }]
+    },
+    {
+      "name": "08 - Listar usuarios protegidos",
+      "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/users" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Lista protegida obtenida', () => {", "  pm.response.to.have.status(200);", "  const users = pm.response.json().data.users;", "  const member = users.find((user) => user.email === 'camila@taskflow.local');", "  pm.expect(member).to.exist;", "  pm.collectionVariables.set('memberId', member.id);", "});"] } }]
+    },
+    {
+      "name": "09 - Actualizar perfil propio",
+      "request": {
+        "method": "PUT",
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Usuario Postman actualizado\",\n  \"bio\": \"Perfil 1 a 1 actualizado\"\n}" },
+        "url": "{{baseUrl}}/api/v1/users/{{userId}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('PUT actualiza usuario y perfil', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.user.profile.bio).to.eql('Perfil 1 a 1 actualizado'); });"] } }]
+    },
+    {
+      "name": "10 - Crear tarea protegida",
+      "request": {
+        "method": "POST",
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"title\": \"Tarea Postman {{runId}}\",\n  \"description\": \"CRUD REST autenticado\",\n  \"status\": \"pending\",\n  \"priority\": \"high\",\n  \"dueDate\": \"2026-09-20\"\n}" },
+        "url": "{{baseUrl}}/api/v1/tasks"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Tarea creada y asociada', () => { pm.response.to.have.status(201); const task = pm.response.json().data.task; pm.expect(task.userId).to.eql(Number(pm.collectionVariables.get('userId'))); pm.collectionVariables.set('taskId', task.id); });"] } }]
+    },
+    {
+      "name": "11 - Filtrar y buscar tareas",
+      "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/tasks?status=pending&search={{runId}}" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Filtros devuelven la tarea esperada', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.tasks).to.have.lengthOf(1); });"] } }]
+    },
+    {
+      "name": "12 - Consultar usuario y relaciones",
+      "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/users/{{userId}}" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Incluye perfil 1:1 y tareas 1:N', () => { pm.response.to.have.status(200); const user = pm.response.json().data.user; pm.expect(user.profile).to.be.an('object'); pm.expect(user.tasks).to.be.an('array'); });"] } }]
+    },
+    {
+      "name": "13 - Actualizar tarea",
+      "request": {
+        "method": "PUT",
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"status\": \"completed\"\n}" },
+        "url": "{{baseUrl}}/api/v1/tasks/{{taskId}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Tarea actualizada', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.task.status).to.eql('completed'); });"] } }]
+    },
+    {
+      "name": "14 - Crear proyecto",
+      "request": {
+        "method": "POST",
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Proyecto Postman {{runId}}\",\n  \"description\": \"Evidencia N a M\"\n}" },
+        "url": "{{baseUrl}}/api/v1/projects"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Proyecto creado con propietario integrante', () => { pm.response.to.have.status(201); const project = pm.response.json().data.project; pm.expect(project.members).to.have.lengthOf(1); pm.collectionVariables.set('projectId', project.id); });"] } }]
+    },
+    {
+      "name": "15 - Actualizar proyecto",
+      "request": {
+        "method": "PUT",
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"description\": \"Proyecto actualizado mediante PUT\"\n}" },
+        "url": "{{baseUrl}}/api/v1/projects/{{projectId}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('PUT actualiza proyecto', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.project.description).to.eql('Proyecto actualizado mediante PUT'); });"] } }]
+    },
+    {
+      "name": "16 - Asociar integrante N a M",
+      "request": {
+        "method": "POST",
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"userId\": {{memberId}}\n}" },
+        "url": "{{baseUrl}}/api/v1/projects/{{projectId}}/members"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Proyecto queda con dos integrantes', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.project.members).to.have.lengthOf(2); });"] } }]
+    },
+    {
+      "name": "17 - Consultar proyecto con integrantes",
+      "request": { "method": "GET", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/projects/{{projectId}}" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Relación N:M visible', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().data.project.members).to.have.lengthOf(2); });"] } }]
+    },
+    {
+      "name": "18 - Upload requiere archivo",
+      "request": {
+        "method": "POST",
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+        "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": [], "disabled": true }] },
+        "url": "{{baseUrl}}/api/v1/upload"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Upload validado en modo automático o manual', () => {", "  const json = pm.response.json();", "  if (pm.response.code === 201) {", "    pm.expect(json.data.avatarUrl).to.match(/^\\/uploads\\/avatars\\//);", "  } else {", "    pm.response.to.have.status(400);", "    pm.expect(json.message).to.include('imagen');", "  }", "});"] } }]
+    },
+    {
+      "name": "19 - Eliminar tarea",
+      "request": { "method": "DELETE", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/tasks/{{taskId}}" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('DELETE elimina tarea', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "20 - Eliminar proyecto",
+      "request": { "method": "DELETE", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/projects/{{projectId}}" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('DELETE elimina proyecto', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "21 - Login administrador",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"ignacio@taskflow.local\",\n  \"password\": \"TaskFlow2026!\"\n}" },
+        "url": "{{baseUrl}}/api/v1/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Administrador obtiene JWT', () => { pm.response.to.have.status(200); pm.collectionVariables.set('adminToken', pm.response.json().data.token); });"] } }]
+    },
+    {
+      "name": "22 - Eliminar cuenta como administrador",
+      "request": { "method": "DELETE", "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/v1/users/{{userId}}" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('CRUD de usuarios completado con autorización', () => pm.response.to.have.status(200));", "pm.collectionVariables.unset('runId');", "pm.collectionVariables.unset('email');", "pm.collectionVariables.unset('token');", "pm.collectionVariables.unset('adminToken');", "pm.collectionVariables.unset('userId');", "pm.collectionVariables.unset('memberId');", "pm.collectionVariables.unset('taskId');", "pm.collectionVariables.unset('projectId');"] } }]
+    }
+  ]
+}

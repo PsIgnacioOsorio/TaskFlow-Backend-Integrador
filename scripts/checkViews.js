@@ -21,7 +21,7 @@ const contexts = {
   "home.hbs": {
     pageTitle: "TaskFlow",
     projectName: "TaskFlow",
-    moduleName: "Parte 2 - Módulo 7",
+    moduleName: "Parte 3 - Módulo 8",
     currentYear: 2026,
     tasks: [task],
     users: [task.user],
@@ -30,7 +30,7 @@ const contexts = {
   "users.hbs": {
     pageTitle: "Usuarios",
     projectName: "TaskFlow",
-    moduleName: "Parte 2 - Módulo 7",
+    moduleName: "Parte 3 - Módulo 8",
     currentYear: 2026,
     userCount: 1,
     users: [

@@ -1,73 +1,67 @@
-# Flujo cliente, servidor y base de datos
+# Flujo cliente, API y base de datos
+
+## Arquitectura modular
 
 ```mermaid
 flowchart TD
     C[Navegador o Postman] --> E[Express]
-    E --> M[Middlewares]
-    M --> R[Rutas web y de datos]
+    E --> M[Logging, JSON, JWT y validación]
+    M --> R[Rutas web y API v1]
     R --> K[Controladores]
     K --> S[Servicios]
     S --> O[Sequelize ORM]
     S --> Q[SQL directo con pg]
     O --> P[(PostgreSQL)]
     Q --> P
-    K --> C
+    S --> U[uploads/avatars]
     M --> L[logs/log.txt]
 ```
 
-## Modelos y relación
+Las rutas definen método, URL y middlewares. Los controladores coordinan la solicitud y la respuesta. Los servicios aplican reglas de negocio y persistencia. Así la seguridad y el transporte HTTP no quedan mezclados con las consultas.
+
+## Relaciones del Módulo 8
 
 ```mermaid
 erDiagram
+    USER ||--|| CREDENTIAL : autentica
+    USER ||--|| PROFILE : posee
     USER ||--o{ TASK : asigna
-    USER {
-        int id PK
-        string name
-        string email UK
-        boolean active
-    }
-    TASK {
-        int id PK
-        string title
-        string status
-        string priority
-        date dueDate
-        int userId FK
-    }
+    USER ||--o{ PROJECT : administra
+    USER ||--o{ PROJECT_MEMBER : integra
+    PROJECT ||--o{ PROJECT_MEMBER : agrupa
 ```
 
-Un usuario puede tener ninguna o muchas tareas. Cada tarea debe tener exactamente un responsable. La clave foránea `tasks.user_id` referencia `users.id` y utiliza eliminación en cascada.
+- `User–Credential` y `User–Profile`: 1:1 mediante `user_id UNIQUE`.
+- `User–Task`: 1:N; cada tarea tiene un responsable.
+- `User–Project`: N:M mediante la clave compuesta de `project_members`.
+- `User–Project` como propietario: 1:N para autorizar cambios.
 
-## Flujo ORM
+## Registro e inicio de sesión
 
-1. La ruta recibe parámetros o un cuerpo JSON.
-2. El controlador delega la operación al servicio.
-3. El servicio valida IDs, textos, correos, fechas y valores permitidos.
-4. Sequelize consulta o modifica PostgreSQL mediante los modelos.
-5. El controlador responde con `{ status, message, data }`.
-6. El middleware central transforma errores de validación, duplicados y conexiones.
+1. `POST /api/v1/auth/register` valida nombre, correo, contraseña y biografía.
+2. bcrypt genera el hash; una transacción crea usuario, credencial y perfil.
+3. `POST /api/v1/auth/login` compara la contraseña con el hash.
+4. El servicio firma un JWT HS256 con identidad, rol, emisor, audiencia y expiración.
+5. El cliente envía `Authorization: Bearer <token>` en cada ruta privada.
+6. El middleware valida el token y carga el usuario activo antes del controlador.
 
-## SQL directo versus Sequelize
+Un token ausente, alterado o expirado responde `401`. Un usuario autenticado que intenta modificar datos ajenos recibe `403`.
 
-- `GET /usuarios` utiliza `User.findAll()` de Sequelize.
-- `GET /usuarios/sql` ejecuta un `SELECT` parametrizado mediante el paquete `pg`.
-- `GET /usuarios/comparacion` ejecuta ambos métodos y confirma si entregan los mismos campos públicos.
+## Carga de avatar
 
-El SQL directo permite observar con precisión la consulta ejecutada. Sequelize evita repetir sentencias CRUD, concentra validaciones en modelos y facilita relaciones mediante `include`.
+1. `POST /api/v1/upload` exige autenticación.
+2. Multer recibe un único campo `file` en memoria y limita su tamaño.
+3. El middleware restringe el MIME a JPEG, PNG o WEBP.
+4. El servicio comprueba la firma binaria antes de escribir.
+5. El archivo recibe un UUID y se guarda en `uploads/avatars`.
+6. `profiles.avatar_url` queda asociado al usuario autenticado.
+7. Express sirve la imagen mediante `/uploads/avatars/<archivo>`.
 
-## Consulta de relaciones
+## Consultas y transacciones heredadas
 
-`GET /usuarios/:id/tareas` utiliza `include` para devolver un usuario junto con sus tareas en una respuesta anidada. La relación se resuelve mediante un único `SELECT` con `JOIN`, tal como solicita la pauta. No se devuelven contraseñas porque TaskFlow todavía no maneja credenciales; esa capacidad se agregará con autenticación en el Módulo 8.
+- La API usa Sequelize para CRUD y relaciones mediante `include`.
+- Las rutas del Módulo 7 conservan una consulta SQL parametrizada con `pg` para comparar resultados.
+- `POST /transacciones/usuario-tarea` conserva la demostración de commit y rollback.
+- Cada solicitud sigue agregando una línea a `logs/log.txt`, manteniendo la persistencia plana del Módulo 6.
 
-## Transacción
-
-`POST /transacciones/usuario-tarea` ejecuta dos acciones consecutivas:
-
-1. Crear un usuario.
-2. Crear su primera tarea.
-
-Ambas se ejecutan dentro de `sequelize.transaction()`. Para demostrar el rollback, `forceFailure: true` provoca una falla controlada después de las dos escrituras y antes del commit. Sequelize revierte tanto la tarea como el usuario. El servidor registra en consola si la transacción terminó correctamente o fue revertida.
-
-## Persistencia del Módulo 6
-
-El middleware de accesos se conserva. Cada solicitud agrega una línea a `logs/log.txt` mediante `fs.appendFile()`, independientemente de la persistencia principal en PostgreSQL.
+Todos los controladores JSON responden con `{ status, message, data }`. El middleware central convierte validaciones, duplicados, autorización, archivos y problemas de conexión en códigos HTTP controlados.

@@ -1,53 +1,41 @@
 # TaskFlow Backend Integrador
 
-Parte 2 del proyecto integrador de los módulos 6, 7 y 8. TaskFlow conserva el servidor Express, las vistas HBS, Bootstrap, el registro en archivo y la página 404 del Módulo 6; en esta entrega agrega persistencia real con PostgreSQL y Sequelize.
+Entrega final de los módulos 6, 7 y 8. TaskFlow integra una aplicación web Express con HBS, PostgreSQL y Sequelize, y expone su lógica mediante una API REST versionada, autenticada con JWT y preparada para recibir avatares con Multer.
 
-La aplicación administra usuarios y tareas. Cada tarea pertenece a un usuario mediante una relación 1:N y permanece disponible después de reiniciar el servidor.
+## Funciones principales
+
+- API bajo `/api/v1` con respuestas `{ status, message, data }`.
+- Registro transaccional y login con contraseña cifrada mediante bcrypt.
+- JWT firmado, con emisor, audiencia y expiración verificables.
+- Autorización por identidad, propiedad del recurso y rol `admin`.
+- CRUD REST de usuarios, tareas y proyectos.
+- Búsquedas y filtros dinámicos.
+- Carga de JPEG, PNG o WEBP de hasta 2 MiB.
+- Avatar asociado en PostgreSQL al perfil autenticado.
+- Relaciones Sequelize 1:1, 1:N y N:M.
+- Contrato OpenAPI y colección Postman con pruebas automáticas.
+- Se mantienen el tablero HBS, Bootstrap, logs, SQL directo y transacciones de los módulos anteriores.
 
 ## Tecnologías
 
-- Node.js 18 o superior
-- Express 5
-- PostgreSQL 18
-- Sequelize 6
-- `pg` y `pg-hstore`
-- HBS
-- Bootstrap 5 instalado con npm
-- dotenv
-- nodemon
-- `fs` para el registro de accesos
-- `node:test` para pruebas automáticas
+- Node.js 18 o superior y Express 5
+- PostgreSQL, Sequelize, `pg` y `pg-hstore`
+- bcryptjs y jsonwebtoken
+- Multer y express-validator
+- HBS y Bootstrap 5
+- dotenv, nodemon y `node:test`
 
-## Funciones
+## Modelo de datos
 
-- Gestión visual básica de usuarios y tareas.
-- Persistencia en las tablas `users` y `tasks`.
-- CRUD completo de usuarios y tareas mediante JSON.
-- Relación `User 1:N Task` consultada mediante `include`.
-- Consulta del usuario y sus tareas en un único `SELECT` con `JOIN`.
-- Búsqueda por texto y filtros por estado, responsable o actividad.
-- Consulta de usuarios con SQL directo usando `pg`.
-- Consulta equivalente con Sequelize.
-- Comparación de resultados SQL versus ORM.
-- Transacción que crea un usuario y su primera tarea.
-- Rollback demostrable mediante una falla controlada.
-- Validaciones, errores JSON consistentes y códigos HTTP apropiados.
-- Registro de accesos en `logs/log.txt`.
-- Página web 404 para rutas inexistentes.
+| Relación | Tipo | Uso |
+|---|---|---|
+| `User` — `Credential` | 1:1 | Hash de contraseña y rol separados de los datos públicos |
+| `User` — `Profile` | 1:1 | Biografía y URL del avatar |
+| `User` — `Task` | 1:N | Un usuario posee varias tareas |
+| `User` — `Project` | N:M | Integrantes asociados mediante `ProjectMember` |
+| `User` — `Project` como propietario | 1:N | Control de autorización del proyecto |
 
-## Preparar PostgreSQL
-
-El proyecto utiliza una base local llamada `taskflow_db` y un usuario dedicado llamado `taskflow_user`.
-
-Desde `psql`, como usuario administrador:
-
-```sql
-CREATE ROLE taskflow_user WITH LOGIN;
-\password taskflow_user
-CREATE DATABASE taskflow_db OWNER taskflow_user;
-```
-
-La contraseña se define de forma local y no debe guardarse en GitHub.
+El esquema de referencia está en [`database/schema.sql`](database/schema.sql).
 
 ## Instalación
 
@@ -57,20 +45,27 @@ Instala las dependencias:
 npm install
 ```
 
-Crea `.env` a partir de `.env.example`:
+Crea `.env` desde el ejemplo. En PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+En Bash:
 
 ```bash
 cp .env.example .env
 ```
 
-Configura tu contraseña real únicamente dentro de `.env`:
+Completa tu contraseña PostgreSQL y reemplaza el secreto JWT dentro de `.env`:
 
 ```env
 PORT=3000
 NODE_ENV=development
 APP_NAME=TaskFlow
-APP_STAGE="Parte 2 - Módulo 7"
+APP_STAGE="Parte 3 - Módulo 8"
 LOG_TIME_ZONE=America/Santiago
+
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=taskflow_db
@@ -78,166 +73,227 @@ DB_USER=taskflow_user
 DB_PASSWORD=TU_CONTRASENA_LOCAL
 DB_SSL=false
 DB_LOGGING=false
+
+JWT_SECRET=UNA_FRASE_PRIVADA_ALEATORIA_DE_32_CARACTERES_O_MAS
+JWT_EXPIRES_IN=1h
+BCRYPT_ROUNDS=10
+SEED_USER_PASSWORD=TaskFlow2026!
+UPLOAD_MAX_BYTES=2097152
 ```
 
-`.env` está ignorado por Git. `.env.example` solo contiene valores de referencia.
+`.env` no se versiona. Tampoco deben publicarse tokens, contraseñas reales ni avatares cargados durante las pruebas.
 
-## Crear tablas y datos iniciales
+## Preparar PostgreSQL
 
-Ejecuta una vez:
+Si la base del Módulo 7 ya existe, no es necesario eliminarla. El siguiente comando conserva `users` y `tasks`, crea las tablas nuevas y agrega datos iniciales sin duplicarlos:
 
 ```bash
 npm run db:setup
 ```
 
-El comando crea las tablas mediante Sequelize y agrega tres usuarios y tres tareas de ejemplo. Es idempotente: puede repetirse sin duplicar esos datos.
+Se crean o verifican `users`, `credentials`, `profiles`, `tasks`, `projects` y `project_members`. También queda disponible una cuenta administradora de demostración:
 
-Comprueba la conexión y la cantidad de registros:
+```text
+Correo: ignacio@taskflow.local
+Contraseña: valor de SEED_USER_PASSWORD
+```
+
+El valor predeterminado del ejemplo es solo para desarrollo local y debe cambiarse fuera de esta demostración.
+
+Comprueba la conexión:
 
 ```bash
 npm run db:check
 ```
 
-## Ejecutar TaskFlow
-
-Modo normal:
+## Ejecutar
 
 ```bash
 npm start
 ```
 
-Modo desarrollo:
+Durante el desarrollo:
 
 ```bash
 npm run dev
 ```
 
-Luego abre:
+Direcciones principales:
 
-- `http://localhost:3000/` para tareas.
-- `http://localhost:3000/users` para usuarios.
-- `http://localhost:3000/status` para el estado del servidor.
+- `http://localhost:3000/`: tablero web heredado.
+- `http://localhost:3000/users`: administración web heredada.
+- `http://localhost:3000/status`: estado general.
+- `http://localhost:3000/api/v1/status`: estado público de la API.
 
-## Pruebas
+## Autenticación paso a paso
 
-Pruebas rápidas de rutas, validaciones, archivos estáticos, errores y logging:
+### 1. Registrar una cuenta
 
-```bash
-npm run check
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
 ```
-
-Validación independiente de las 15 solicitudes y pruebas de Postman:
-
-```bash
-npm run check:postman
-```
-
-Pruebas de integración sobre PostgreSQL real:
-
-```bash
-npm run test:db
-```
-
-Comprobación completa:
-
-```bash
-npm run check:all
-```
-
-Las pruebas de integración crean registros con correos únicos, verifican CRUD, filtros, un único `SELECT` con `include`, SQL directo, transacción exitosa y rollback de usuario y tarea; después eliminan los datos temporales.
-
-La correspondencia completa entre los criterios de evaluación y sus evidencias está en [`docs/verificacion-pauta-modulo7.md`](docs/verificacion-pauta-modulo7.md).
-
-## Rutas web
-
-| Método | Ruta | Uso |
-|---|---|---|
-| GET | `/` | Tablero HBS de tareas |
-| GET | `/users` | Gestión HBS de usuarios |
-| POST | `/users` | Crear usuario desde formulario |
-| POST | `/users/:id/delete` | Eliminar usuario desde formulario |
-| POST | `/tasks` | Crear tarea desde formulario |
-| POST | `/tasks/:id/advance` | Avanzar estado desde el tablero |
-| POST | `/tasks/:id/delete` | Eliminar tarea desde el tablero |
-| GET | `/status` | Estado del servidor |
-
-## Rutas de datos
-
-| Método | Ruta | Uso |
-|---|---|---|
-| GET | `/usuarios` | Listar usuarios con Sequelize |
-| GET | `/usuarios?search=camila&active=true` | Buscar y filtrar usuarios |
-| POST | `/usuarios` | Crear usuario |
-| PUT | `/usuarios/:id` | Actualizar campos permitidos |
-| DELETE | `/usuarios/:id` | Eliminar usuario y sus tareas |
-| GET | `/usuarios/sql` | Listar usuarios con SQL directo y `pg` |
-| GET | `/usuarios/comparacion` | Comparar SQL directo y Sequelize |
-| GET | `/usuarios/:id/tareas` | Obtener un usuario y sus tareas con `include` |
-| GET | `/tareas` | Listar tareas y responsables |
-| GET | `/tareas?status=pending&search=informe` | Filtrar y buscar tareas |
-| POST | `/tareas` | Crear tarea |
-| PUT | `/tareas/:id` | Actualizar tarea |
-| DELETE | `/tareas/:id` | Eliminar tarea |
-| POST | `/transacciones/usuario-tarea` | Crear usuario y tarea dentro de una transacción |
-| GET | `/api/tasks` | Alias conservado desde el Módulo 6 |
-
-## Ejemplo de usuario
 
 ```json
 {
   "name": "Ana Pérez",
   "email": "ana@example.com",
-  "active": true
+  "password": "Modulo82026!",
+  "bio": "Usuario de TaskFlow"
 }
 ```
 
-## Ejemplo de tarea
+La contraseña debe tener entre 8 y 72 caracteres e incluir mayúscula, minúscula y número. Solo se almacena su hash.
+
+### 2. Iniciar sesión
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+```
 
 ```json
 {
-  "title": "Preparar informe",
-  "description": "Revisar resultados del proyecto",
-  "status": "pending",
-  "priority": "high",
-  "dueDate": "2026-09-15",
-  "userId": 1
+  "email": "ana@example.com",
+  "password": "Modulo82026!"
 }
 ```
 
-## Transacción y rollback
+La respuesta incluye `token`, `tokenType` y `expiresIn`.
 
-La ruta transaccional recibe un usuario y una tarea. Ambas operaciones se confirman juntas. Si cualquiera falla, PostgreSQL revierte todo.
+### 3. Consumir una ruta privada
 
-Para forzar la demostración del rollback se envía:
+```http
+GET /api/v1/tasks
+Authorization: Bearer TU_TOKEN
+```
+
+En Postman el token se guarda temporalmente en la variable de colección `token`. En un cliente web conviene conservarlo en memoria y, para una solución productiva con renovación de sesión, usar una cookie `HttpOnly`, `Secure` y `SameSite` gestionada por el servidor. TaskFlow no guarda el JWT en PostgreSQL ni en el repositorio. Se evita recomendar `localStorage` porque un script inyectado podría leerlo.
+
+Las rutas de tareas y proyectos se protegen porque modifican información vinculada a una identidad. Los usuarios normales acceden solo a tareas propias y proyectos donde participan; el propietario administra su proyecto y el rol `admin` puede eliminar cuentas.
+
+## Endpoints REST
+
+Todas las rutas privadas requieren `Authorization: Bearer <token>`.
+
+| Método | Ruta | Acceso | Uso |
+|---|---|---|---|
+| GET | `/api/v1/status` | Público | Estado y versión de API |
+| POST | `/api/v1/auth/register` | Público | Crear usuario, credencial y perfil |
+| POST | `/api/v1/auth/login` | Público | Generar JWT |
+| GET | `/api/v1/users?search=&active=` | Privado | Listar y filtrar usuarios |
+| GET | `/api/v1/users/:id` | Propio/admin | Obtener perfil, tareas y proyectos |
+| PUT | `/api/v1/users/:id` | Propio/admin | Actualizar usuario y perfil |
+| DELETE | `/api/v1/users/:id` | Admin | Eliminar cuenta |
+| GET | `/api/v1/tasks?status=&search=&limit=` | Privado | Listar tareas permitidas |
+| GET | `/api/v1/tasks/:id` | Propietario/admin | Obtener tarea |
+| POST | `/api/v1/tasks` | Privado | Crear tarea propia |
+| PUT | `/api/v1/tasks/:id` | Propietario/admin | Actualizar tarea |
+| DELETE | `/api/v1/tasks/:id` | Propietario/admin | Eliminar tarea |
+| GET | `/api/v1/projects` | Privado | Listar proyectos permitidos |
+| GET | `/api/v1/projects/:id` | Integrante/admin | Consultar integrantes |
+| POST | `/api/v1/projects` | Privado | Crear proyecto |
+| PUT | `/api/v1/projects/:id` | Propietario/admin | Actualizar proyecto |
+| POST | `/api/v1/projects/:id/members` | Propietario/admin | Asociar integrante N:M |
+| DELETE | `/api/v1/projects/:id` | Propietario/admin | Eliminar proyecto |
+| POST | `/api/v1/upload` | Privado | Subir y asociar avatar |
+
+El contrato completo está en [`docs/openapi.yaml`](docs/openapi.yaml).
+
+## Subir un avatar
+
+Envía `multipart/form-data` con un campo de tipo archivo llamado `file`:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/upload \
+  -H "Authorization: Bearer TU_TOKEN" \
+  -F "file=@avatar.png"
+```
+
+Reglas aplicadas:
+
+- MIME permitido: `image/jpeg`, `image/png` o `image/webp`.
+- Tamaño predeterminado: máximo 2 MiB.
+- Se verifica la firma binaria, no solo el nombre o MIME declarado.
+- El servidor genera un nombre aleatorio.
+- La ruta pública queda bajo `/uploads/avatars/`.
+- `profiles.avatar_url` se actualiza y el avatar anterior se elimina.
+
+Los archivos reales de `uploads/avatars` están ignorados por Git para evitar publicar datos personales.
+
+## Respuestas y errores
+
+Éxito:
 
 ```json
 {
-  "user": {
-    "name": "Prueba Rollback",
-    "email": "rollback@example.com",
-    "active": true
-  },
-  "task": {
-    "title": "No debe persistir",
-    "description": "Prueba controlada",
-    "status": "pending",
-    "priority": "medium",
-    "dueDate": "2026-09-16"
-  },
-  "forceFailure": true
+  "status": "ok",
+  "message": "Tarea creada",
+  "data": { "task": {} }
 }
 ```
 
-La falla controlada ocurre después de intentar ambas escrituras. El servidor muestra `[TRANSACCION ROLLBACK]` y no queda almacenado ni el usuario ni la tarea.
+Error:
 
-## Decisiones técnicas
+```json
+{
+  "status": "error",
+  "message": "Token Bearer requerido",
+  "data": null
+}
+```
 
-- Se eligió PostgreSQL porque el dominio tiene relaciones claras y requiere consistencia transaccional.
-- Sequelize reduce SQL repetitivo, centraliza modelos y validaciones, y permite consultar relaciones con `include`.
-- `pg` se conserva para demostrar una consulta SQL parametrizada y compararla con el ORM.
-- Las credenciales se leen desde `.env`; nunca se escriben en el código ni en el repositorio.
-- Las actualizaciones aceptan solamente campos definidos por los servicios. Los IDs y valores enumerados se validan antes de consultar la base.
-- Los usuarios todavía no almacenan contraseñas. Registro, login, hash, JWT y rutas privadas corresponden al Módulo 8.
+La API usa, según corresponda, `400`, `401`, `403`, `404`, `409`, `413`, `415`, `500` y `503`.
+
+## Pruebas
+
+Validación rápida sin requerir PostgreSQL:
+
+```bash
+npm run check
+```
+
+Pruebas reales de PostgreSQL y de la API:
+
+```bash
+npm run test:db
+```
+
+Aceptación completa:
+
+```bash
+npm run check:all
+```
+
+La comprobación incluye rutas públicas y privadas, token alterado y expirado, validaciones, CRUD, filtros, relaciones, upload permitido/rechazado, SQL directo, transacción confirmada y rollback.
+
+## Postman
+
+Importa:
+
+```text
+postman/TaskFlow-Modulo8.postman_collection.json
+```
+
+1. Ejecuta `npm run db:setup` y `npm start`.
+2. Abre la colección y usa **Run collection** en el orden incluido.
+3. El flujo crea una cuenta, obtiene JWT, comprueba dos 401, ejecuta CRUD y relaciones, y limpia los registros.
+4. La solicitud 18 demuestra el error controlado cuando falta el archivo.
+5. Para la evidencia de carga exitosa, vuelve a ejecutar 02 y 05 después del Runner, abre 18, habilita `file`, selecciona una imagen permitida menor a 2 MiB y envíala. Debe responder `201` con `avatarUrl`. Después ejecuta 21 y 22 para eliminar la cuenta temporal y su avatar.
+
+Los scripts guardan IDs y tokens en variables de colección, no en el JSON versionado.
+
+## Decisiones técnicas e iteración
+
+- `/api/v1` separa el contrato nuevo de las rutas web y de datos heredadas; permite evolucionar la API sin romper clientes anteriores.
+- Las rutas declaran método, validación y autenticación; los controladores traducen HTTP; los servicios contienen negocio y persistencia; los middlewares concentran seguridad y errores.
+- Credenciales y perfiles se separaron de `users` mediante 1:1 para no exponer hashes ni mezclar autenticación con datos públicos.
+- Las tareas se limitan por propietario y los proyectos por membresía. Así un JWT válido no concede acceso automático a todos los registros.
+- La validación se ejecuta en la frontera HTTP y se repite en servicios para proteger también llamadas internas.
+- Multer usa memoria para validar la firma antes de escribir, reduciendo el riesgo de dejar archivos no permitidos en disco.
+- La entrega amplía el mismo repositorio y preserva el historial de los módulos 6 y 7.
+
+La reflexión integradora está en [`docs/reflexion-modulo8.md`](docs/reflexion-modulo8.md), la correspondencia completa con la pauta en [`docs/verificacion-pauta-modulo8.md`](docs/verificacion-pauta-modulo8.md) y el paso a paso de capturas en [`docs/guia-evidencias-modulo8.md`](docs/guia-evidencias-modulo8.md).
 
 ## Estructura principal
 
@@ -245,46 +301,38 @@ La falla controlada ocurre después de intentar ambas escrituras. El servidor mu
 TaskFlow-Backend-Integrador/
 ├── app.js
 ├── config/
-│   └── database.js
 ├── controllers/
-│   ├── data.controller.js
-│   └── web.controller.js
-├── models/
-│   ├── index.js
-│   ├── task.model.js
-│   └── user.model.js
-├── routes/
-│   ├── data.routes.js
-│   └── web.routes.js
-├── scripts/
-│   ├── checkDatabase.js
-│   ├── checkPostman.js
-│   └── setupDatabase.js
-├── services/
-│   ├── databaseSetup.service.js
-│   ├── sqlUser.service.js
-│   ├── task.service.js
-│   └── user.service.js
-├── tests/
-│   ├── app.test.js
-│   └── database.integration.js
-├── views/
-│   ├── home.hbs
-│   ├── users.hbs
-│   └── not-found.hbs
-├── public/
-├── middlewares/
+├── database/
 ├── docs/
+│   ├── openapi.yaml
+│   ├── guia-evidencias-modulo8.md
+│   ├── reflexion-modulo8.md
+│   └── verificacion-pauta-modulo8.md
+├── middlewares/
+├── models/
 ├── postman/
-└── logs/
+│   └── TaskFlow-Modulo8.postman_collection.json
+├── public/
+├── routes/
+├── scripts/
+├── services/
+├── tests/
+├── uploads/
+│   └── avatars/
+├── utils/
+└── views/
 ```
 
-## Continuidad
+## Scripts
 
-- **Módulo 6:** Express, HBS, Bootstrap, rutas, archivos estáticos, errores y log plano.
-- **Módulo 7:** PostgreSQL, Sequelize, modelos, CRUD, relaciones y transacciones.
-- **Módulo 8:** autenticación, JWT, rutas privadas y subida validada de archivos.
-
-## Autor
-
-Ignacio Osorio Opazo
+| Comando | Propósito |
+|---|---|
+| `npm start` | Iniciar servidor |
+| `npm run dev` | Iniciar con nodemon |
+| `npm run db:setup` | Crear tablas y datos iniciales |
+| `npm run db:check` | Verificar conexión y registros |
+| `npm test` | Pruebas rápidas HTTP |
+| `npm run test:db` | Integración PostgreSQL y API |
+| `npm run check:postman` | Validar colección Módulo 8 |
+| `npm run check:openapi` | Validar sintaxis y cobertura OpenAPI |
+| `npm run check:all` | Ejecutar aceptación completa |
